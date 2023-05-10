@@ -22,14 +22,8 @@ RUN apt-get update & apt-get install -y wget extra-runtime-dependencies tzdata c
 ENV TZ=Etc/UTC \
     APP_USER=rust_app
 
-RUN groupadd $APP_USER && useradd -g $APP_USER $APP_USER  && mkdir -p ${APP}
-RUN chsh -s /usr/bin/nonlogin root
-
 COPY --from=builder /usr/src/kyotu-project-operator/target/release/kyotu-project-operator ${APP}/kyotu-project-operator
 
-RUN chown -R $APP_USER:$APP_USER ${APP}
-
-USER $APP_USER
 WORKDIR ${APP}
 
 EXPOSE 8080
