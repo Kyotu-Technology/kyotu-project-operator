@@ -1,4 +1,4 @@
-use std::{path::PathBuf, f32::consts::E};
+use std::{f32::consts::E, path::PathBuf};
 use tracing::debug;
 
 pub struct Repository {
@@ -43,8 +43,9 @@ pub fn credentials_cb(
             debug!("authenticate with user {} and password", user);
             return git2::Cred::userpass_plaintext(user, &p);
         }
-        _ => Err(git2::Error::from_str("unable to get password from PASSWORD")),
-
+        _ => Err(git2::Error::from_str(
+            "unable to get password from PASSWORD",
+        )),
     }
 }
 
