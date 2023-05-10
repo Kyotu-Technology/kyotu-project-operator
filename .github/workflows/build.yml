@@ -1,0 +1,48 @@
+name: Rust fmt, lint, and Cargo build with Kaniko
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install Rust and Kaniko
+      run: |
+        curl https://sh.rustup.rs -sSf | sh -s -- -y
+        export PATH="$PATH:$HOME/.cargo/bin"
+        wget https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-344.0.0-linux-x86_64.tar.gz -P /tmp/
+        tar -C /usr/local -xzf /tmp/google-cloud-sdk-344.0.0-linux-x86_64.tar.gz
+        /usr/local/google-cloud-sdk/bin/gcloud components install kaniko
+
+    - name: Rust fmt
+      run: cargo fmt -- --check
+
+    - name: Rust lint
+      run: cargo clippy -- -D warnings
+
+    - name: Rust build
+      run: cargo build --release
+
+    - name: Login to ECR
+      id: ecr
+      uses: elgohr/ecr-login-action@v3
+      with:
+        access_key: ${{ secrets.AWS_ACCESS_KEY }}
+        secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        region: ${{ secrets.AWS_REGION }}
+
+    - name: Kaniko build
+      uses: aevea/action-kaniko@master
+      with:
+        image: ${{ secrets.REGISTRY_URL }}/kyotu-project-operator:{{ github.short_sha }}
+
+  
+  
+  

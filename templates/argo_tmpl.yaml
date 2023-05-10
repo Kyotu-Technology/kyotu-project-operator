@@ -1,0 +1,90 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: {{ project_name }}
+  namespace: argocd
+spec:
+  description: Kyotu Technology {{ project_name|capitalize }} Projects
+  destinations:
+    - name: '*'
+      namespace: '{{ project_name }}'
+      server: 'https://kubernetes.default.svc'
+  sourceRepos:
+    - 'https://gitlab.k8s.kyotutechnology.com/operations/deployment.git'
+    - 'registry.k8s.kyotutechnology.com/operations/deployment'
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: {{ project_name }}-apps
+  namespace: argocd
+spec:
+  generators:
+  - git:
+      repoURL: https://gitlab.k8s.kyotutechnology.com/operations/deployment.git
+      revision: main
+      directories:
+      - path: manifests/{{ project_name }}/*
+  template:
+    metadata:
+{% raw %}      name: '{{path.basename}}-{{path[1]}}'{% endraw %}
+    spec:
+      project: "{{ project_name }}"
+      source:
+        repoURL: https://gitlab.k8s.kyotutechnology.com/operations/deployment.git
+        targetRevision: main
+{% raw %}        path: '{{path}}'{% endraw %}
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{ project_name }}'
+      syncPolicy:
+        syncOptions:
+          - PruneLast=true
+          - CreateNamespace=true
+        automated:
+          prune: true
+        retry:
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m0s
+          limit: 5
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: {{ project_name }}-configs
+  namespace: argocd
+spec:
+  generators:
+  - git:
+      repoURL: https://gitlab.k8s.kyotutechnology.com/operations/deployment.git
+      revision: main
+      directories:
+      - path: manifests/{{ project_name }}/*/*
+  template:
+    metadata:
+{% raw %}      name: '{{path.basename}}-{{path[2]}}'{% endraw %}
+    spec:
+      project: "{{ project_name }}"
+      source:
+        repoURL: https://gitlab.k8s.kyotutechnology.com/operations/deployment.git
+        targetRevision: main
+{% raw %}        path: '{{path}}'{% endraw %}
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{ project_name }}'
+      syncPolicy:
+        syncOptions:
+          - PruneLast=true
+          - CreateNamespace=true
+        automated:
+          prune: true
+        retry:
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m0s
+          limit: 5
