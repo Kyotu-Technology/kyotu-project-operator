@@ -55,7 +55,7 @@ jobs:
 
     - name: Docker build
       run: |
-        docker build -t ${{ steps.login-ecr.outputs.registry }}/${{ github.event.repository.name }}:${{ env.SHORTSHA }} .
+        docker build --cache-from ${{ steps.login-ecr.outputs.registry }}/${{ github.event.repository.name }}:latest -t ${{ steps.login-ecr.outputs.registry }}/${{ github.event.repository.name }}:${{ env.SHORTSHA }} .
         docker tag ${{ steps.login-ecr.outputs.registry }}/${{ github.event.repository.name }}:${{ env.SHORTSHA }} ${{ steps.login-ecr.outputs.registry }}/${{ github.event.repository.name }}:latest
         docker push ${{ steps.login-ecr.outputs.registry }}/${{ github.event.repository.name }}:latest
         docker push ${{ steps.login-ecr.outputs.registry }}/${{ github.event.repository.name }}:${{ env.SHORTSHA }}
