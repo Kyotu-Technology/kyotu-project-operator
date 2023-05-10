@@ -34,6 +34,12 @@ jobs:
     steps:
     - uses: actions/checkout@v3
       name: Checkout
+    
+    - name: Set short git commit SHA
+      id: vars
+      run: |
+        calculatedSha=$(git rev-parse --short ${{ github.sha }})
+        echo "SHORTSHA=${calculatedSha}" >> "${GITHUB_ENV}"
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
