@@ -63,7 +63,7 @@ async fn main() -> anyhow::Result<()> {
             .wrap(TracingLogger::default())
             .service(health)
     })
-    .bind(("127.0.0.1", 8080))
+    .bind("0.0.0.0:8080")
     .expect("Failed to bind to port 8080")
     .shutdown_timeout(5);
 
