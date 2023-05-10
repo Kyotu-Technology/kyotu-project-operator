@@ -65,8 +65,8 @@ jobs:
         cache-to: type=gha
         push: true
         tags: |
-         ${{ steps.login-ecr.outputs.registry }}/${{ github.event.repository.name }}:${{ env.SHORTSHA }}
-         ${{ steps.login-ecr.outputs.registry }}/${{ github.event.repository.name }}:latest
+         ${{ secrets.REGISTRY_URL }}/${{ github.event.repository.name }}:${{ env.SHORTSHA }}
+         ${{ secrets.REGISTRY_URL }}/${{ github.event.repository.name }}:latest
 
 
       
