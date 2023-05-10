@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, f32::consts::E};
 use tracing::debug;
 
 pub struct Repository {
@@ -31,11 +31,20 @@ pub fn credentials_cb(
                 "authenticate with user {} and private key located in {}",
                 user, k
             );
-            git2::Cred::ssh_key(user, None, std::path::Path::new(&k), None)
+            return git2::Cred::ssh_key(user, None, std::path::Path::new(&k), None);
         }
-        _ => Err(git2::Error::from_str(
-            "unable to get private key from KEY_PATH",
-        )),
+        Err(_) => {
+            debug!("No private key found, trying to authenticate with password");
+        }
+    };
+
+    match std::env::var("DEPLOY_KEY") {
+        Ok(p) => {
+            debug!("authenticate with user {} and password", user);
+            return git2::Cred::userpass_plaintext(user, &p);
+        }
+        _ => Err(git2::Error::from_str("unable to get password from PASSWORD")),
+
     }
 }
 

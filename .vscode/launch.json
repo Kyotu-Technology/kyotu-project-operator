@@ -7,15 +7,15 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'rust-git2-example'",
+            "name": "Debug executable 'kyotu-project-operator'",
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=rust-git2-example",
-                    "--package=rust-git2-example"
+                    "--bin=kyotu-project-operator",
+                    "--package=kyotu-project-operator"
                 ],
                 "filter": {
-                    "name": "rust-git2-example",
+                    "name": "kyotu-project-operator",
                     "kind": "bin"
                 }
             },
@@ -25,16 +25,16 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in executable 'rust-git2-example'",
+            "name": "Debug unit tests in executable 'kyotu-project-operator'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
-                    "--bin=rust-git2-example",
-                    "--package=rust-git2-example"
+                    "--bin=kyotu-project-operator",
+                    "--package=kyotu-project-operator"
                 ],
                 "filter": {
-                    "name": "rust-git2-example",
+                    "name": "kyotu-project-operator",
                     "kind": "bin"
                 }
             },

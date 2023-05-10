@@ -1,3 +1,4 @@
 /target
 /tmp
 .env
+/manifests/operator_deployment.yaml
