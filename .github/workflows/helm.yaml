@@ -67,7 +67,3 @@ jobs:
         helm package charts/kyotu-project-operator
         helm push "${{ env.ECR_REPOSITORY }}-${chart_version}.tgz" oci://$ECR_REGISTRY
     
-        
-    
-
-
