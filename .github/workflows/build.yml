@@ -1,4 +1,4 @@
-name: Rust fmt, lint, and Cargo build with Kaniko
+name: Build and push
 
 on:
   push:
