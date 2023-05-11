@@ -1,0 +1,12 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "kyotu-project-operator.fullname" . }}-binding
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "kyotu-project-operator.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ include "kyotu-project-operator.fullname" . }}
+  apiGroup: rbac.authorization.k8s.io

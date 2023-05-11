@@ -2,7 +2,6 @@ apiVersion: kyotu.tech/v1
 kind: Project
 metadata:
   name: test-project
-  namespace: default 
 spec:
   projectId: test-project
   environmentType: dev

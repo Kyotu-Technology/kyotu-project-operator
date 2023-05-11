@@ -1,0 +1,19 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "kyotu-project-operator.fullname" . }}
+  labels:
+    {{- include "kyotu-project-operator.labels" . | nindent 4 }}
+rules:
+  - apiGroups:
+      - kyotu.tech
+    resources:
+      - projects
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - delete
+      - patch
