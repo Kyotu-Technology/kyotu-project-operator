@@ -39,7 +39,7 @@ jobs:
     - uses: azure/setup-helm@v3
       name: Setup Helm
       with:
-        version: 'v3.5.4'
+        version: 'v3.11.3'
 
     - name: update chart version in Chart.yaml
       run: |
@@ -66,7 +66,6 @@ jobs:
         chart_version=$(echo "${GITHUB_REF}" | sed -e 's/refs\/tags\/helm-//')
         helm package charts/kyotu-project-operator
         helm push "${{ env.ECR_REPOSITORY }}-${chart_version}.tgz" oci://$ECR_REGISTRY
-
     
         
     
