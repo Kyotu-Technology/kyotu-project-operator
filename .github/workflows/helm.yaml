@@ -47,6 +47,26 @@ jobs:
         sed -i "s/^version: .*/version: ${chart_version}/" charts/kyotu-project-operator/Chart.yaml
         echo "Chart version updated to ${chart_version}"
 
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+    
+    - name: Login to ECR
+      uses: aws-actions/amazon-ecr-login@arjraman
+      id: login-ecr
+
+    - name: Build and push Helm Chart
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: ${{ github.event.repository.name }}
+      run: |
+        chart_version=$(echo "${GITHUB_REF}" | sed -e 's/refs\/tags\/helm-//')
+        helm package charts/kyotu-project-operator
+        helm push "${{ env.ECR_REPOSITORY }}-${chart_version}.tgz" oci://$ECR_REGISTRY
+
     
         
     
