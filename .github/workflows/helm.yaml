@@ -55,7 +55,7 @@ jobs:
         aws-region: ${{ secrets.AWS_REGION }}
     
     - name: Login to ECR
-      uses: aws-actions/amazon-ecr-login@arjraman
+      uses: aws-actions/amazon-ecr-login@v1
       id: login-ecr
 
     - name: Build and push Helm Chart
