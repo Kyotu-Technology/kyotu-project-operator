@@ -6,6 +6,9 @@ on:
     paths:
       - '**'
       - '!charts/**'
+    tags:
+      - '**'
+      - '!helm-*'
   pull_request:
     branches: [main]
     paths:
