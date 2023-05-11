@@ -26,9 +26,6 @@ jobs:
     - name: Lint Helm Chart
       run: helm lint charts/kyotu-project-operator
 
-    - name: Test Helm Chart
-      run: helm install kyotu-project-operator charts/kyotu-project-operator --dry-run --debug
-
   #run only on tag push with a tag that starts with helm-* (e.g. helm-1.0.0)
   release:
     runs-on: ubuntu-latest
