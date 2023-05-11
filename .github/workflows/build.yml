@@ -3,8 +3,14 @@ name: Rust fmt, lint, and Cargo build with Kaniko
 on:
   push:
     branches: [main, '*']
+    paths:
+      - '**'
+      - '!charts/**'
   pull_request:
     branches: [main]
+    paths:
+      - '**'
+      - '!charts/**'
 
 jobs:
   build:

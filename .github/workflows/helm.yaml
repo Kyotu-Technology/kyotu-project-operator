@@ -1,0 +1,48 @@
+name: Helm Chart Release
+
+on:
+  push:
+    branches: [main, '*']
+    paths:
+      - 'charts/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'charts/**'
+    
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+      name: Checkout
+
+    - uses: azure/setup-helm@v3
+      name: Setup Helm
+      with:
+        version: 'v3.5.4'
+      
+    - name: Lint Helm Chart
+      run: helm lint charts/kyotu-project-operator
+
+    - name: Test Helm Chart
+      run: helm install kyotu-project-operator charts/kyotu-project-operator --dry-run --debug
+
+  release:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs: test
+
+    steps:
+    - uses: actions/checkout@v3
+      name: Checkout
+
+    - uses: azure/setup-helm@v3
+      name: Setup Helm
+      with:
+        version: 'v3.5.4'
+
+    
+
+
