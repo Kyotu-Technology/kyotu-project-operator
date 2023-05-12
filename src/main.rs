@@ -15,6 +15,7 @@ use tracing_actix_web::TracingLogger;
 mod controller;
 mod finalizer;
 mod namespace;
+mod gitlab;
 mod project;
 pub mod project_crd;
 mod repository;
@@ -59,9 +60,11 @@ async fn main() -> anyhow::Result<()> {
         .expect("Failed to create client");
 
     let crd_api: Api<Project> = Api::all(kubernetes_client.clone());
+    let reqwest_client = reqwest::Client::new();
 
     let context: Arc<controller::ContextData> = Arc::new(controller::ContextData {
         client: kubernetes_client.clone(),
+        reqwest_client: reqwest_client.clone(),
     });
 
     //start server for health check
@@ -86,6 +89,13 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
         });
+
+    let gitlab_url = std::env::var("GITLAB_URL").expect("GITLAB_URL not set");
+    let gitlab_token = std::env::var("GITLAB_TOKEN").expect("GITLAB_TOKEN not set");
+
+    //let group_id = gitlab::create_group(&gitlab_url, &gitlab_token, &reqwest_client, "test-group").await?;
+    //gitlab::create_group_access_token(&gitlab_url, &gitlab_token, &reqwest_client, "test-group", &group_id).await?;
+    //gitlab::delete_group(&gitlab_url, &gitlab_token, &reqwest_client, "test-group").await?;
 
     tokio::join!(controller, srv.run()).1?;
     Ok(())
