@@ -5,6 +5,7 @@ use std::sync::Arc;
 use tokio::time::Duration;
 
 use crate::finalizer;
+use crate::namespace::{create_namespace, delete_namespace};
 use crate::project::{create_project, delete_project};
 use crate::project_crd::Project;
 
@@ -41,6 +42,9 @@ pub async fn reconcile(project: Arc<Project>, context: Arc<ContextData>) -> Resu
         ProjectAction::Create => {
             let repo_root = Path::new(repo_root.as_str());
             finalizer::add(client.clone(), &project_name, &namespace).await?;
+            create_namespace(client.clone(), &project_name)
+                .await
+                .unwrap();
             create_project(&project_name, repo_root).await.unwrap();
             Ok(Action::requeue(Duration::from_secs(10)))
         }
@@ -52,6 +56,9 @@ pub async fn reconcile(project: Arc<Project>, context: Arc<ContextData>) -> Resu
                     log::error!("Failed to delete project: {:?}", e);
                 }
             }
+            delete_namespace(client.clone(), &project_name)
+                .await
+                .unwrap();
             finalizer::delete(client, &project_name, &namespace).await?;
             Ok(Action::await_change())
         }

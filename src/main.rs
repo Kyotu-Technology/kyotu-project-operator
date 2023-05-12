@@ -2,23 +2,24 @@ extern crate git2;
 
 use actix_web::{get, HttpResponse, Responder};
 use futures::stream::StreamExt;
-use git2::build::RepoBuilder;
-use git2::{FetchOptions, RemoteCallbacks};
-use kube::{api::ListParams, client::Client, runtime::Controller, Api};
+use kube::{
+    api::Api,
+    client::Client,
+    runtime::{controller::Controller, watcher::Config},
+};
 use serde::{Deserialize, Serialize};
-use std::path::Path;
 use std::sync::Arc;
 use tracing::info;
 use tracing_actix_web::TracingLogger;
 
 mod controller;
 mod finalizer;
+mod namespace;
 mod project;
 pub mod project_crd;
 mod repository;
 
 use crate::project_crd::Project;
-use crate::repository::Repository;
 
 #[derive(Serialize, Deserialize)]
 struct Health {
@@ -34,15 +35,24 @@ pub async fn health() -> impl Responder {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    //init tracing with env_logger
-    tracing_subscriber::FmtSubscriber::builder()
-        .with_max_level(tracing::Level::INFO)
-        .with_span_events(tracing_subscriber::fmt::format::FmtSpan::CLOSE)
-        .json()
-        .init();
-
     //init dotenv
     dotenv::dotenv().ok();
+    //set tracing log level based on env var
+    let log_level = std::env::var("LOG_LEVEL").unwrap_or_else(|_| "info".to_string());
+    let log_level = match log_level.as_str() {
+        "debug" => tracing::Level::DEBUG,
+        "info" => tracing::Level::INFO,
+        "warn" => tracing::Level::WARN,
+        "error" => tracing::Level::ERROR,
+        _ => tracing::Level::INFO,
+    };
+
+    //init tracing with env_logger
+    tracing_subscriber::FmtSubscriber::builder()
+        .with_span_events(tracing_subscriber::fmt::format::FmtSpan::CLOSE)
+        .with_max_level(log_level)
+        .json()
+        .init();
 
     let kubernetes_client = Client::try_default()
         .await
@@ -64,7 +74,7 @@ async fn main() -> anyhow::Result<()> {
     .expect("Failed to bind to port 8080")
     .shutdown_timeout(5);
 
-    let controller = Controller::new(crd_api.clone(), ListParams::default())
+    let controller = Controller::new(crd_api.clone(), Config::default().any_semantic())
         .run(controller::reconcile, controller::on_error, context)
         .for_each(|reconciliation_result| async move {
             match reconciliation_result {
