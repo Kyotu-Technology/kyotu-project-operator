@@ -1,8 +1,12 @@
 use reqwest::{Client, Error};
 use serde_json::json;
 
-
-pub async fn create_group(url: &str, token: &str, client: &Client, name: &str) -> Result<u64, reqwest::Error> {
+pub async fn create_group(
+    url: &str,
+    token: &str,
+    client: &Client,
+    name: &str,
+) -> Result<u64, reqwest::Error> {
     let url = format!("{}/api/v4/groups", &url);
     let res = client
         .get(&url)
@@ -14,7 +18,7 @@ pub async fn create_group(url: &str, token: &str, client: &Client, name: &str) -
         Ok(r) => {
             let body = r.text().await.unwrap();
             let json: serde_json::Value = serde_json::from_str(&body).unwrap();
-            if json.as_array().unwrap_or(&Vec::new()).is_empty(){
+            if json.as_array().unwrap_or(&Vec::new()).is_empty() {
                 // create group
                 let res = client
                     .post(&url)
@@ -53,7 +57,12 @@ pub async fn create_group(url: &str, token: &str, client: &Client, name: &str) -
 }
 
 //delete group
-pub async fn delete_group(url: &str, token: &str, client: &Client, name: &str) -> Result<String, reqwest::Error> {
+pub async fn delete_group(
+    url: &str,
+    token: &str,
+    client: &Client,
+    name: &str,
+) -> Result<String, reqwest::Error> {
     let url = format!("{}/api/v4/groups", &url);
     let res = client
         .get(&url)
@@ -65,7 +74,7 @@ pub async fn delete_group(url: &str, token: &str, client: &Client, name: &str) -
         Ok(r) => {
             let body = r.text().await.unwrap();
             let json: serde_json::Value = serde_json::from_str(&body).unwrap();
-            if json.as_array().unwrap_or(&Vec::new()).is_empty(){
+            if json.as_array().unwrap_or(&Vec::new()).is_empty() {
                 log::info!("Group {} does not exist", name);
                 return Ok(name.to_string());
             } else {
@@ -98,7 +107,13 @@ pub async fn delete_group(url: &str, token: &str, client: &Client, name: &str) -
 }
 
 //create group access token
-pub async fn create_group_access_token(url: &str, token: &str, client: &Client, name: &str, id: &u64) -> Result<String, reqwest::Error> {
+pub async fn create_group_access_token(
+    url: &str,
+    token: &str,
+    client: &Client,
+    name: &str,
+    id: &u64,
+) -> Result<String, reqwest::Error> {
     // create group access token. If it already exists recreate it
     let url = format!("{}/api/v4/groups/{}/access_tokens", &url, id);
     let res = client
@@ -111,7 +126,7 @@ pub async fn create_group_access_token(url: &str, token: &str, client: &Client, 
         Ok(r) => {
             let body = r.text().await.unwrap();
             let json: serde_json::Value = serde_json::from_str(&body).unwrap();
-            if json.as_array().unwrap_or(&Vec::new()).is_empty(){
+            if json.as_array().unwrap_or(&Vec::new()).is_empty() {
                 // create group access token
                 let res = client
                     .post(&url)
@@ -127,7 +142,10 @@ pub async fn create_group_access_token(url: &str, token: &str, client: &Client, 
                         let body = r.text().await.unwrap();
                         let json: serde_json::Value = serde_json::from_str(&body).unwrap();
                         let token = json["token"].as_str().unwrap();
-                        log::info!("Created group access token: {}", format!("{}-image-puller", name));
+                        log::info!(
+                            "Created group access token: {}",
+                            format!("{}-image-puller", name)
+                        );
                         Ok(token.to_string())
                     }
                     Err(e) => {
@@ -137,7 +155,10 @@ pub async fn create_group_access_token(url: &str, token: &str, client: &Client, 
                 }
             } else {
                 let token = json[0]["id"].as_u64().unwrap();
-                log::info!("Group access token {} already exists", format!("{}-image-puller", name));
+                log::info!(
+                    "Group access token {} already exists",
+                    format!("{}-image-puller", name)
+                );
                 Ok(token.to_string())
             }
         }
@@ -146,7 +167,6 @@ pub async fn create_group_access_token(url: &str, token: &str, client: &Client, 
             Err(e)
         }
     }
-
 }
 
 //test create group
@@ -174,9 +194,14 @@ mod tests {
             .with_body(r#"{"id": 1, "name": "test", "path": "test"}"#)
             .create();
 
-
         let client = reqwest::Client::new();
-        let res = create_group(&format!("http://{}", host).to_string(), "test", &client, "test").await;
+        let res = create_group(
+            &format!("http://{}", host).to_string(),
+            "test",
+            &client,
+            "test",
+        )
+        .await;
         assert_eq!(res.unwrap_or(0), 1);
     }
 
@@ -201,7 +226,13 @@ mod tests {
             .create();
 
         let client = reqwest::Client::new();
-        let res = delete_group(&format!("http://{}", host).to_string(), "test", &client, "test").await;
+        let res = delete_group(
+            &format!("http://{}", host).to_string(),
+            "test",
+            &client,
+            "test",
+        )
+        .await;
         assert_eq!(res.unwrap_or("".to_string()), "test".to_string());
     }
 
@@ -212,7 +243,10 @@ mod tests {
         let host = server.host_with_port();
 
         server
-            .mock("GET", "/api/v4/groups/1/access_tokens?name=test-image-puller")
+            .mock(
+                "GET",
+                "/api/v4/groups/1/access_tokens?name=test-image-puller",
+            )
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(r#"[]"#)
@@ -228,7 +262,14 @@ mod tests {
         std::env::set_var("GITLAB_URL", format!("http://{}", host));
         std::env::set_var("GITLAB_TOKEN", "test");
         let client = reqwest::Client::new();
-        let res = create_group_access_token(&format!("http://{}", host).to_string(), "test", &client, "test", &1).await;
+        let res = create_group_access_token(
+            &format!("http://{}", host).to_string(),
+            "test",
+            &client,
+            "test",
+            &1,
+        )
+        .await;
         println!("{:?}", res);
         assert_eq!(res.unwrap_or("".to_string()), "test".to_string());
     }

@@ -5,9 +5,9 @@ use std::sync::Arc;
 use tokio::time::Duration;
 
 use crate::finalizer;
+use crate::gitlab::{create_group, create_group_access_token, delete_group};
 use crate::namespace::{create_namespace, delete_namespace};
 use crate::project::{create_project, delete_project};
-use crate::gitlab::{create_group, delete_group, create_group_access_token};
 use crate::project_crd::Project;
 
 pub struct ContextData {
@@ -17,7 +17,10 @@ pub struct ContextData {
 
 impl ContextData {
     pub fn new(client: Client, reqwest_client: reqwest::Client) -> Self {
-        Self { client,  reqwest_client}
+        Self {
+            client,
+            reqwest_client,
+        }
     }
 }
 
@@ -50,8 +53,18 @@ pub async fn reconcile(project: Arc<Project>, context: Arc<ContextData>) -> Resu
             create_namespace(client.clone(), &project_name)
                 .await
                 .unwrap();
-            let group_id = create_group(&gitlab_url, &gitlab_token, &reqwest_client, &project_name).await.unwrap();
-            let pull_token = create_group_access_token(&gitlab_url, &gitlab_token, &reqwest_client, &project_name, &group_id).await.unwrap();
+            let group_id = create_group(&gitlab_url, &gitlab_token, &reqwest_client, &project_name)
+                .await
+                .unwrap();
+            let pull_token = create_group_access_token(
+                &gitlab_url,
+                &gitlab_token,
+                &reqwest_client,
+                &project_name,
+                &group_id,
+            )
+            .await
+            .unwrap();
             create_project(&project_name, repo_root).await.unwrap();
             Ok(Action::requeue(Duration::from_secs(10)))
         }

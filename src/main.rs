@@ -14,8 +14,8 @@ use tracing_actix_web::TracingLogger;
 
 mod controller;
 mod finalizer;
-mod namespace;
 mod gitlab;
+mod namespace;
 mod project;
 pub mod project_crd;
 mod repository;
