@@ -16,6 +16,7 @@ pub struct ContextData {
 }
 
 impl ContextData {
+    #[allow(dead_code)]
     pub fn new(client: Client, reqwest_client: reqwest::Client) -> Self {
         Self {
             client,

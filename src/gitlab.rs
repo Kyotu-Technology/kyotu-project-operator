@@ -1,4 +1,4 @@
-use reqwest::{Client, Error};
+use reqwest::{Client};
 use serde_json::json;
 
 pub async fn create_group(
@@ -270,7 +270,6 @@ mod tests {
             &1,
         )
         .await;
-        println!("{:?}", res);
         assert_eq!(res.unwrap_or("".to_string()), "test".to_string());
     }
 }

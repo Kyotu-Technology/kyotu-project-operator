@@ -90,13 +90,6 @@ async fn main() -> anyhow::Result<()> {
             }
         });
 
-    let gitlab_url = std::env::var("GITLAB_URL").expect("GITLAB_URL not set");
-    let gitlab_token = std::env::var("GITLAB_TOKEN").expect("GITLAB_TOKEN not set");
-
-    //let group_id = gitlab::create_group(&gitlab_url, &gitlab_token, &reqwest_client, "test-group").await?;
-    //gitlab::create_group_access_token(&gitlab_url, &gitlab_token, &reqwest_client, "test-group", &group_id).await?;
-    //gitlab::delete_group(&gitlab_url, &gitlab_token, &reqwest_client, "test-group").await?;
-
     tokio::join!(controller, srv.run()).1?;
     Ok(())
 }
