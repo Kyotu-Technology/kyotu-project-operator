@@ -14,17 +14,28 @@ pub async fn create_project(name: &str, repo_root: &Path) -> Result<String, Proj
     let mut context = Context::new();
     context.insert("project_name", &name);
 
-    let repo_url = std::env::var("ARGO_REPO").expect("ARGO_REPO not set");
-    let repo_branch = std::env::var("REPO_BRANCH").expect("REPO_BRANCH not set");
+    let repo_url = match std::env::var("ARGO_REPO") {
+        Ok(url) => url,
+        Err(e) => {
+            log::error!("ARGO_REPO not set: {}", e);
+            ::std::process::exit(1);
+        }
+    };
+    let repo_branch = match std::env::var("REPO_BRANCH") {
+        Ok(branch) => branch,
+        Err(e) => {
+            log::error!("REPO_BRANCH not set: {}", e);
+            ::std::process::exit(1);
+        }
+    };
 
     //clear tmp dir
     if repo_root.exists() {
         std::fs::remove_dir_all(repo_root).expect("Failed to remove repo root");
     }
     //clone repo into project folder
-    let mut argo_repository =
-        Repository::clone(&repo_url, &repo_branch, &repo_root.to_string_lossy())
-            .expect("Failed to clone repo");
+    let argo_repository = Repository::clone(&repo_url, &repo_branch, &repo_root.to_string_lossy())
+        .expect("Failed to clone repo");
 
     //create project folder in repo_root
     let project_path = Path::new(&repo_root).join("manifests").join(name);
@@ -69,16 +80,27 @@ pub async fn create_project(name: &str, repo_root: &Path) -> Result<String, Proj
 }
 
 pub async fn delete_project(name: &str, repo_root: &Path) -> Result<String, ProjectError> {
-    let repo_url = std::env::var("ARGO_REPO").expect("ARGO_REPO not set");
-    let repo_branch = std::env::var("REPO_BRANCH").expect("REPO_BRANCH not set");
+    let repo_url = match std::env::var("ARGO_REPO") {
+        Ok(url) => url,
+        Err(e) => {
+            log::error!("ARGO_REPO not set: {}", e);
+            ::std::process::exit(1);
+        }
+    };
+    let repo_branch = match std::env::var("REPO_BRANCH") {
+        Ok(branch) => branch,
+        Err(e) => {
+            log::error!("REPO_BRANCH not set: {}", e);
+            ::std::process::exit(1);
+        }
+    };
     //clear tmp dir
     if repo_root.exists() {
         std::fs::remove_dir_all(repo_root).expect("Failed to remove repo root");
     }
     //clone repo into project folder
-    let mut argo_repository =
-        Repository::clone(&repo_url, &repo_branch, &repo_root.to_string_lossy())
-            .expect("Failed to clone repo");
+    let argo_repository = Repository::clone(&repo_url, &repo_branch, &repo_root.to_string_lossy())
+        .expect("Failed to clone repo");
 
     let project_path = Path::new(&repo_root).join("manifests").join(name);
     match std::fs::remove_dir_all(&project_path) {

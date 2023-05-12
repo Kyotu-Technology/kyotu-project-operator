@@ -1,7 +1,4 @@
-use std::{
-    f32::consts::E,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 use tracing::debug;
 use tracing::log;
 

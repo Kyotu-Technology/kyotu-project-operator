@@ -17,3 +17,15 @@ rules:
       - update
       - delete
       - patch
+  - apiGroups:
+      - api
+    resources:
+      - namespaces
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - delete
+      - patch
