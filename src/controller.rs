@@ -9,7 +9,7 @@ use crate::gitlab::{create_group, create_group_access_token, delete_group};
 use crate::namespace::{create_namespace, delete_namespace};
 use crate::project::{create_project, delete_project};
 use crate::project_crd::Project;
-use crate::secret::create_secret;
+use crate::secret::{create_secret, delete_secret};
 
 pub struct ContextData {
     pub client: Client,
@@ -67,6 +67,7 @@ pub async fn reconcile(project: Arc<Project>, context: Arc<ContextData>) -> Resu
             )
             .await
             .unwrap();
+            create_secret(client.clone(), &project_name, &pull_token).await.unwrap();
             create_project(&project_name, repo_root).await.unwrap();
             Ok(Action::requeue(Duration::from_secs(10)))
         }
@@ -78,6 +79,7 @@ pub async fn reconcile(project: Arc<Project>, context: Arc<ContextData>) -> Resu
                     log::error!("Failed to delete project: {:?}", e);
                 }
             }
+            delete_secret(client.clone(), &project_name).await.unwrap();
             delete_namespace(client.clone(), &project_name)
                 .await
                 .unwrap();

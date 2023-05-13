@@ -91,8 +91,6 @@ async fn main() -> anyhow::Result<()> {
             }
         });
 
-    //secret::create_secret(kubernetes_client.clone(), "test-project", "data").await?;
-    secret::delete_secret(kubernetes_client.clone(), "test-project").await?;
     tokio::join!(controller, srv.run()).1?;
     Ok(())
 }

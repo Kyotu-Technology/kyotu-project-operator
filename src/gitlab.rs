@@ -114,7 +114,6 @@ pub async fn create_group_access_token(
     name: &str,
     id: &u64,
 ) -> Result<String, reqwest::Error> {
-    // create group access token. If it already exists recreate it
     let url = format!("{}/api/v4/groups/{}/access_tokens", &url, id);
     let res = client
         .get(&url)
@@ -160,6 +159,7 @@ pub async fn create_group_access_token(
                     format!("{}-image-puller", name)
                 );
                 Ok(token.to_string())
+                // delete group access token
             }
         }
         Err(e) => {
