@@ -12,7 +12,7 @@ tera = "1.18.1"
 kube = { version = "0.82.2", features = ["derive", "runtime"] }
 k8s-openapi = { version = "0.18.0", features = ["v1_24"] }
 clap = { version = "4.2.7", features = ["derive"] }
-tokio = { version = "1.23", features = ["macros", "rt-multi-thread", "signal"] }
+tokio = { version = "1.28.1", features = ["macros", "rt-multi-thread", "signal"] }
 backoff = "0.4.0"
 futures = "0.3.28"
 anyhow = "1.0.71"
