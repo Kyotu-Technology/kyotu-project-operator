@@ -20,12 +20,15 @@ serviceAccount:
   name: ""
 
 config:
+  gitlabUrl: https://gitlab.k8s.kyotutechnology.com
   repoRoot: tmp/deploy_repo
   argoRepo: https://operator@gitlab.k8s.kyotutechnology.com/operations/deployment.git
   fluxRepo: git@github.com:Kyotu-Technology/aws-k8s-flux.git
   repoBranch: test
   deployKeySecret: kyotu-project-operator-token
   deployKeySecretKey: deployKey
+  gitlabTokenSecret: kyotu-project-operator-token
+  gitlabTokenSecretKey: gitlabToken
 
 service:
   type: ClusterIP

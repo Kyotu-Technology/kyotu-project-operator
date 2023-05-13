@@ -36,6 +36,8 @@ spec:
               containerPort: {{ .Values.service.port }}
               protocol: TCP
           env:
+            - name: GITLAB_URL
+              value: {{ .Values.config.gitlabUrl }}
             - name: REPO_ROOT
               value: {{ .Values.config.repoRoot }}
             - name: ARGO_REPO
@@ -49,6 +51,11 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.config.deployKeySecret }}
                   key: {{ .Values.config.deployKeySecretKey }}
+            - name: GITLAB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.config.gitlabTokenSecret }}
+                  key: {{ .Values.config.gitlabTokenSecretKey }}
           livenessProbe:
             httpGet:
               path: /health
