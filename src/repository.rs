@@ -1,5 +1,4 @@
 use std::path::{Path, PathBuf};
-use tracing::debug;
 use tracing::log;
 
 pub struct Repository {
