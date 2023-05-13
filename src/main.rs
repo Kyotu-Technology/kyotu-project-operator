@@ -17,8 +17,9 @@ mod finalizer;
 mod gitlab;
 mod namespace;
 mod project;
-pub mod project_crd;
+mod project_crd;
 mod repository;
+mod secret;
 
 use crate::project_crd::Project;
 
@@ -90,6 +91,8 @@ async fn main() -> anyhow::Result<()> {
             }
         });
 
+    //secret::create_secret(kubernetes_client.clone(), "test-project", "data").await?;
+    secret::delete_secret(kubernetes_client.clone(), "test-project").await?;
     tokio::join!(controller, srv.run()).1?;
     Ok(())
 }

@@ -9,6 +9,7 @@ use crate::gitlab::{create_group, create_group_access_token, delete_group};
 use crate::namespace::{create_namespace, delete_namespace};
 use crate::project::{create_project, delete_project};
 use crate::project_crd::Project;
+use crate::secret::create_secret;
 
 pub struct ContextData {
     pub client: Client,
