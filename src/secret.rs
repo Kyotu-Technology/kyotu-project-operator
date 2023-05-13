@@ -13,7 +13,7 @@ pub async fn create_secret(client: Client, namespace: &str, data: &str) -> anyho
     labels.insert("app".to_string(), "kyotu-project-operator".to_string());
     let mut data_map: BTreeMap<String, ByteString> = BTreeMap::new();
     let gitlab_url = std::env::var("GITLAB_URL").expect("GITLAB_URL must be set");
-    let username = format!("{}-image-puller", namespace );
+    let username = format!("{}-image-puller", namespace);
 
     let registry_url = gitlab_url.replace("https://", "https://registry.");
 
