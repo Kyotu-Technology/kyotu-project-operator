@@ -45,14 +45,8 @@ impl Repository {
         let oid = index.write_tree()?;
         let tree = self.inner.find_tree(oid)?;
 
-        let sig = self.inner.signature()?;
-        //set user and email
-        self.inner
-            .config()?
-            .set_str("user.name", "kyotu-project-operator")?;
-        self.inner
-            .config()?
-            .set_str("user.email", "no-reply@kyotutechnology.com")?;
+        let sig = git2::Signature::now("kyotu-project-operator", "no-reply@kyotutechnology.com")?;
+
         let parent_commit = self.inner.head()?.peel_to_commit()?;
         self.inner
             .commit(Some("HEAD"), &sig, &sig, message, &tree, &[&parent_commit])?;
