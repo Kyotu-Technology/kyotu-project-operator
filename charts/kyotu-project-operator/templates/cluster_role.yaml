@@ -18,7 +18,7 @@ rules:
       - delete
       - patch
   - apiGroups:
-      - api
+      - ""
     resources:
       - namespaces
     verbs:
