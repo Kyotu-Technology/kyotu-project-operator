@@ -62,7 +62,7 @@ jobs:
           cargo outdated --exit-code 1 -d 1
           rm -rf ~/.cargo/advisory-db
           cargo audit
-          cargo pants   
+          cargo pants --ignore-file .pants-ignore 
 
   #push on commit to main
   push_docker:
