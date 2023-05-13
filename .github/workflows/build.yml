@@ -16,7 +16,7 @@ on:
       - '!charts/**'
 
 jobs:
-  build:
+  check:
     runs-on: ubuntu-latest
 
     steps:
@@ -49,71 +49,8 @@ jobs:
       - name: Test
         run: cargo test
 
-    #- name: Rust lint
-    #  run: cargo clippy -- -D warnings
-    #  continue-on-error: true
-
-  # push only on tags but not on tags that start with helm- (e.g. helm-1.0.0)
-  push_production:
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/') && !startsWith(github.ref, 'refs/tags/helm-')
-    needs: build
-
-    steps:
-    - uses: actions/checkout@v3
-      name: Checkout
-    
-    - name: Get the version
-      id: get_version
-      run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
-
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
-
-    - name: Login to ECR
-      uses: docker/login-action@v2
-      with:
-        registry: ${{ secrets.REGISTRY_URL }}
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
-    
-    - name: Build and push
-      uses: docker/build-push-action@v4
-      with:
-        context: .
-        file: ./Dockerfile
-        cache-from: type=registry,ref=${{ secrets.REGISTRY_URL }}/${{ github.event.repository.name }}:buildcache
-        cache-to: type=registry,ref=${{ secrets.REGISTRY_URL }}/${{ github.event.repository.name }}:buildcache,mode=max
-        push: true
-        tags: |
-         ${{ secrets.REGISTRY_URL }}/${{ github.event.repository.name }}:${{ steps.get_version.outputs.VERSION }}
-         ${{ secrets.REGISTRY_URL }}/${{ github.event.repository.name }}:latest
-
-    - name: Change App version in Helm Chart
-      run: |
-        sed -i "s/appVersion: .*/appVersion: ${{ steps.get_version.outputs.VERSION }}/g" charts/kyotu-project-operator/Chart.yaml
-
-    - name: Push back to repo
-      run: |
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        git config --global user.name "github-actions[bot]"
-        git add charts/kyotu-project-operator/Chart.yaml
-        git commit -m "Update Chart.yaml appVersion to ${{ steps.get_version.outputs.VERSION }}"
-    
-    - name: Push back to GitHub
-      uses: ad-m/github-push-action@master
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        branch: main
-        force: true
-
   #push on commit to main
-  push_dev:
+  push_docker:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     needs: build
@@ -125,6 +62,13 @@ jobs:
     - name: Get short SHA
       id: get_short_sha
       run: echo ::set-output name=SHA::$(echo ${GITHUB_SHA} | cut -c1-7)
+
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v1
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
@@ -141,7 +85,8 @@ jobs:
       with:
         registry: ${{ secrets.REGISTRY_URL }}
       
-    - name: Build and push
+    - name: Build and push Dev
+      if: github.ref == 'refs/heads/main'
       uses: docker/build-push-action@v4
       with:
         context: .
@@ -151,3 +96,37 @@ jobs:
         push: true
         tags: |
          ${{ secrets.REGISTRY_URL }}/${{ github.event.repository.name }}:dev-${{ steps.get_short_sha.outputs.SHA }}
+
+    - name: Build and push Production
+      if: startsWith(github.ref, 'refs/tags/') && !startsWith(github.ref, 'refs/tags/helm-')
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: ./Dockerfile
+        cache-from: type=registry,ref=ghcr.io/kyotu-technology/${{ github.event.repository.name }}:buildcache
+        cache-to: type=registry,ref=ghcr.io/kyotu-technology/${{ github.event.repository.name }}:buildcache,mode=max
+        push: true
+        tags: |
+         ${{ secrets.REGISTRY_URL }}/${{ github.event.repository.name }}:${{ steps.get_version.outputs.VERSION }}
+         ${{ secrets.REGISTRY_URL }}/${{ github.event.repository.name }}:latest
+
+    - name: Change App version in Helm Chart
+      if: startsWith(github.ref, 'refs/tags/') && !startsWith(github.ref, 'refs/tags/helm-')
+      run: |
+        sed -i "s/appVersion: .*/appVersion: ${{ steps.get_version.outputs.VERSION }}/g" charts/kyotu-project-operator/Chart.yaml
+
+    - name: Push back to repo
+      if: startsWith(github.ref, 'refs/tags/') && !startsWith(github.ref, 'refs/tags/helm-')
+      run: |
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git config --global user.name "github-actions[bot]"
+        git add charts/kyotu-project-operator/Chart.yaml
+        git commit -m "Update Chart.yaml appVersion to ${{ steps.get_version.outputs.VERSION }}"
+    
+    - name: Push back to GitHub
+      if: startsWith(github.ref, 'refs/tags/') && !startsWith(github.ref, 'refs/tags/helm-')
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: main
+        force: true
