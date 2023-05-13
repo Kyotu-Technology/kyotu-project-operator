@@ -99,7 +99,7 @@ impl Repository {
         match std::env::var("DEPLOY_KEY") {
             Ok(p) => {
                 debug!("authenticate with user {} and password", user);
-                return git2::Cred::userpass_plaintext(user, &p);
+                git2::Cred::userpass_plaintext(user, &p)
             }
             _ => Err(git2::Error::from_str(
                 "unable to get password from PASSWORD",
@@ -107,6 +107,7 @@ impl Repository {
         }
     }
 
+    #[allow(dead_code)]
     pub fn transfer_progress_cb(progress: &git2::Progress) -> bool {
         if progress.received_objects() == progress.total_objects() {
             log::info!(

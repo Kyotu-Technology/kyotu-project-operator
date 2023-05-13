@@ -3,7 +3,7 @@ use base64::engine::Engine as _;
 use k8s_openapi::api::core::v1::Secret;
 use k8s_openapi::ByteString;
 use kube::api::{DeleteParams, ObjectMeta, PostParams};
-use kube::{Api, Client, Error};
+use kube::{Api, Client};
 use serde_json::json;
 use std::collections::BTreeMap;
 //create secret
@@ -13,6 +13,7 @@ pub async fn create_secret(client: Client, namespace: &str, data: &str) -> anyho
     labels.insert("app".to_string(), "kyotu-project-operator".to_string());
     let mut data_map: BTreeMap<String, ByteString> = BTreeMap::new();
     let gitlab_url = std::env::var("GITLAB_URL").expect("GITLAB_URL must be set");
+    let username = format!("{}-image-puller", namespace );
 
     let registry_url = gitlab_url.replace("https://", "https://registry.");
 
@@ -20,9 +21,9 @@ pub async fn create_secret(client: Client, namespace: &str, data: &str) -> anyho
         {
             "auths": {
                 registry_url: {
-                    "username": format!("{}-image-puller", namespace ),
+                    "username": username,
                     "password": data,
-                    "auth": BASE64.encode(format!("{}:{}", format!("{}-image-puller", namespace ), data).as_bytes())
+                    "auth": BASE64.encode(format!("{}:{}", username, data).as_bytes())
                 }
             }
         }
@@ -33,7 +34,6 @@ pub async fn create_secret(client: Client, namespace: &str, data: &str) -> anyho
         ByteString(
             serde_json::to_string_pretty(&data_json)
                 .unwrap()
-                .to_string()
                 .into_bytes(),
         ),
     );
@@ -58,7 +58,7 @@ pub async fn create_secret(client: Client, namespace: &str, data: &str) -> anyho
                 "Secret gitlab-registry-image-pull-secret already exists in namespace {}",
                 namespace
             );
-            return Ok(namespace.to_string());
+            Ok(namespace.to_string())
         }
         Err(_) => {
             let res = secret_api.create(&PostParams::default(), &secret).await?;
@@ -82,7 +82,7 @@ pub async fn delete_secret(client: Client, namespace: &str) -> anyhow::Result<St
                     "Secret gitlab-registry-image-pull-secret in namspace {} does not have label app=kyotu-project-operator",
                     namespace
                 );
-                return Ok(namespace.to_string());
+                Ok(namespace.to_string())
             } else {
                 let dp = DeleteParams::default();
                 let _res = secret_api
@@ -97,7 +97,7 @@ pub async fn delete_secret(client: Client, namespace: &str) -> anyhow::Result<St
                 "Secret gitlab-registry-image-pull-secret does not exist in namespace {}",
                 namespace
             );
-            return Ok(namespace.to_string());
+            Ok(namespace.to_string())
         }
     }
 }

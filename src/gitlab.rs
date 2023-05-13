@@ -57,6 +57,7 @@ pub async fn create_group(
 }
 
 //delete group
+#[allow(dead_code)]
 pub async fn delete_group(
     url: &str,
     token: &str,
@@ -76,7 +77,7 @@ pub async fn delete_group(
             let json: serde_json::Value = serde_json::from_str(&body).unwrap();
             if json.as_array().unwrap_or(&Vec::new()).is_empty() {
                 log::info!("Group {} does not exist", name);
-                return Ok(name.to_string());
+                Ok(name.to_string())
             } else {
                 let id = json[0]["id"].as_u64().unwrap();
                 // delete group

@@ -1,6 +1,6 @@
 use k8s_openapi::api::core::v1::Namespace;
 use kube::api::{DeleteParams, ObjectMeta, PostParams};
-use kube::{Api, Client, Error};
+use kube::{Api, Client};
 use std::collections::BTreeMap;
 
 //create namespace
@@ -23,7 +23,7 @@ pub async fn create_namespace(client: Client, name: &str) -> anyhow::Result<Stri
     match res {
         Ok(_) => {
             log::warn!("Namespace {} already exists", name);
-            return Ok(name.to_string());
+            Ok(name.to_string())
         }
         Err(_) => {
             let res = ns_api.create(&PostParams::default(), &namespace).await?;
@@ -47,7 +47,7 @@ pub async fn delete_namespace(client: Client, name: &str) -> anyhow::Result<Stri
                     "Namespace {} does not have label app=kyotu-project-operator",
                     name
                 );
-                return Ok(name.to_string());
+                Ok(name.to_string())
             } else {
                 let dp = DeleteParams::default();
                 let _res = ns_api.delete(name, &dp).await?;
@@ -57,7 +57,7 @@ pub async fn delete_namespace(client: Client, name: &str) -> anyhow::Result<Stri
         }
         Err(_) => {
             log::warn!("Namespace {} does not exist", name);
-            return Ok(name.to_string());
+            Ok(name.to_string())
         }
     }
 }

@@ -5,7 +5,7 @@ use std::sync::Arc;
 use tokio::time::Duration;
 
 use crate::finalizer;
-use crate::gitlab::{create_group, create_group_access_token, delete_group};
+use crate::gitlab::{create_group, create_group_access_token};
 use crate::namespace::{create_namespace, delete_namespace};
 use crate::project::{create_project, delete_project};
 use crate::project_crd::Project;
@@ -92,6 +92,7 @@ pub async fn reconcile(project: Arc<Project>, context: Arc<ContextData>) -> Resu
     };
 }
 
+#[allow(clippy::needless_return)]
 //determine action to take based on the state of the echo CRD
 fn determine_action(project: &Project) -> ProjectAction {
     return if project.meta().deletion_timestamp.is_some() {
