@@ -22,7 +22,7 @@ jobs:
       run: |
         raw=$(git branch -r --contains ${{ github.ref }})
         branch=${raw/origin\/}
-        echo ::set-env name=BRANCH::$branch
+        echo "BRANCH=${branch}" >> "$GITHUB_ENV"
 
     - uses: azure/setup-helm@v3
       name: Setup Helm
