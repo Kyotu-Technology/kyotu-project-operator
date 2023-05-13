@@ -92,3 +92,17 @@ jobs:
         helm package charts/kyotu-project-operator
         helm push "${{ env.ECR_REPOSITORY }}-${chart_version}.tgz" oci://$ECR_REGISTRY
     
+    - name: Create commit with changed Chart.yaml
+      run: |
+        chart_version=$(echo "${GITHUB_REF}" | sed -e 's/refs\/tags\/helm-//')
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git config --global user.name "github-actions[bot]"
+        git add charts/kyotu-project-operator/Chart.yaml
+        git commit -m "Update Chart.yaml version to ${chart_version}"
+        
+    - name: Push back to GitHub
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: ${{ github.ref }}
+        force: true

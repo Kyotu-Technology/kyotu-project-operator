@@ -79,6 +79,24 @@ jobs:
          ${{ secrets.REGISTRY_URL }}/${{ github.event.repository.name }}:${{ steps.get_version.outputs.VERSION }}
          ${{ secrets.REGISTRY_URL }}/${{ github.event.repository.name }}:latest
 
+    - name: Change App version in Helm Chart
+      run: |
+        sed -i "s/appVersion: .*/appVersion: ${{ steps.get_version.outputs.VERSION }}/g" charts/kyotu-project-operator/Chart.yaml
+
+    - name: Push back to repo
+      run: |
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git config --global user.name "github-actions[bot]"
+        git add charts/kyotu-project-operator/Chart.yaml
+        git commit -m "Update Chart.yaml appVersion to ${{ steps.get_version.outputs.VERSION }}"
+    
+    - name: Push back to GitHub
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: ${{ github.ref }}
+        force: true
+
   #push on commit to main
   push_dev:
     runs-on: ubuntu-latest
