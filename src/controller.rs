@@ -67,7 +67,9 @@ pub async fn reconcile(project: Arc<Project>, context: Arc<ContextData>) -> Resu
             )
             .await
             .unwrap();
-            create_secret(client.clone(), &project_name, &pull_token).await.unwrap();
+            create_secret(client.clone(), &project_name, &pull_token)
+                .await
+                .unwrap();
             create_project(&project_name, repo_root).await.unwrap();
             Ok(Action::requeue(Duration::from_secs(10)))
         }
