@@ -92,20 +92,21 @@ impl Repository {
 
         match std::env::var("KEY_PATH") {
             Ok(k) => {
-                debug!(
+                log::info!(
                     "authenticate with user {} and private key located in {}",
-                    user, k
+                    user,
+                    k
                 );
                 return git2::Cred::ssh_key(user, None, std::path::Path::new(&k), None);
             }
             Err(_) => {
-                debug!("No private key found, trying to authenticate with password");
+                log::info!("No private key found, trying to authenticate with password");
             }
         };
 
         match std::env::var("DEPLOY_KEY") {
             Ok(p) => {
-                debug!("authenticate with user {} and password", user);
+                log::info!("authenticate with user {} and password", user);
                 git2::Cred::userpass_plaintext(user, &p)
             }
             _ => Err(git2::Error::from_str(
