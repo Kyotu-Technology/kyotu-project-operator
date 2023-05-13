@@ -14,10 +14,12 @@ use tracing_actix_web::TracingLogger;
 
 mod controller;
 mod finalizer;
+mod gitlab;
 mod namespace;
 mod project;
-pub mod project_crd;
+mod project_crd;
 mod repository;
+mod secret;
 
 use crate::project_crd::Project;
 
@@ -59,9 +61,11 @@ async fn main() -> anyhow::Result<()> {
         .expect("Failed to create client");
 
     let crd_api: Api<Project> = Api::all(kubernetes_client.clone());
+    let reqwest_client = reqwest::Client::new();
 
     let context: Arc<controller::ContextData> = Arc::new(controller::ContextData {
         client: kubernetes_client.clone(),
+        reqwest_client: reqwest_client.clone(),
     });
 
     //start server for health check
