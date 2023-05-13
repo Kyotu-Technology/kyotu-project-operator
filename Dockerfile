@@ -25,6 +25,7 @@ ENV TZ=Etc/UTC \
 RUN groupadd $APP_USER && useradd -g $APP_USER $APP_USER  && mkdir -p ${APP}
 RUN chsh -s /usr/bin/nonlogin root
 
+COPY ./templates ${APP}/templates
 COPY --from=builder /usr/src/kyotu-project-operator/target/release/kyotu-project-operator ${APP}/kyotu-project-operator
 
 RUN chown -R $APP_USER:$APP_USER ${APP}
