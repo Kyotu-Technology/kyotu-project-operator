@@ -146,8 +146,8 @@ jobs:
       with:
         context: .
         file: ./Dockerfile
-        cache-from: type=registry,ref=${{ secrets.REGISTRY_URL }}/${{ github.event.repository.name }}:buildcache
-        cache-to: type=registry,ref=${{ secrets.REGISTRY_URL }}/${{ github.event.repository.name }}:buildcache,mode=max
+        cache-from: type=registry,ref=ghcr.io/Kyotu-Technology/${{ github.event.repository.name }}:buildcache
+        cache-to: type=registry,ref=ghcr.io/Kyotu-Technology/${{ github.event.repository.name }}:buildcache,mode=max
         push: true
         tags: |
          ${{ secrets.REGISTRY_URL }}/${{ github.event.repository.name }}:dev-${{ steps.get_short_sha.outputs.SHA }}
