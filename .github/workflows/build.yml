@@ -24,12 +24,9 @@ jobs:
         uses: actions/checkout@v3
         
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: ${{ inputs.rust-version }}
-          override: true
-          components: rustfmt, clippy
+        run: |
+          curl https://sh.rustup.rs -sSf | sh -s -- -y
+          export PATH="$PATH:$HOME/.cargo/bin"
 
       - name: Set up cargo cache
         uses: actions/cache@v3
