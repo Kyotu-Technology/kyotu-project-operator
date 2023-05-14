@@ -28,7 +28,7 @@ jobs:
           curl https://sh.rustup.rs -sSf | sh -s -- -y
           export PATH="$PATH:$HOME/.cargo/bin"
 
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@v2.3.0
         with:
           cache-all-crates: "true"
           cache-on-failure: "true"
