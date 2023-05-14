@@ -113,9 +113,9 @@ pub async fn create_group_access_token(
     token: &str,
     client: &Client,
     name: &str,
-    id: &u64,
+    group_id: &u64,
 ) -> Result<String, reqwest::Error> {
-    let url = format!("{}/api/v4/groups/{}/access_tokens", &url, id);
+    let url = format!("{}/api/v4/groups/{}/access_tokens", &url, group_id);
     let res = client
         .get(&url)
         .header("PRIVATE-TOKEN", token)
@@ -165,6 +165,64 @@ pub async fn create_group_access_token(
         }
         Err(e) => {
             log::error!("Failed to create group access token: {:?}", e);
+            Err(e)
+        }
+    }
+}
+
+//delete group access token
+#[allow(dead_code)]
+pub async fn delete_group_access_token(
+    url: &str,
+    token: &str,
+    client: &Client,
+    name: &str,
+    group_id: &u64,
+) -> Result<String, reqwest::Error> {
+    let url = format!("{}/api/v4/groups/{}/access_tokens", &url, group_id);
+    let res = client
+        .get(&url)
+        .header("PRIVATE-TOKEN", token)
+        .query(&[("name", format!("{}-image-puller", name))])
+        .send()
+        .await;
+    match res {
+        Ok(r) => {
+            let body = r.text().await.unwrap();
+            let json: serde_json::Value = serde_json::from_str(&body).unwrap();
+            if json.as_array().unwrap_or(&Vec::new()).is_empty() {
+                log::info!(
+                    "Group access token {} does not exist",
+                    format!("{}-image-puller", name)
+                );
+                Ok(name.to_string())
+            } else {
+                let token = json[0]["id"].as_u64().unwrap();
+                // delete group access token
+                let url = format!("{}/{}", &url, token);
+                let res = client
+                    .delete(&url)
+                    .header("PRIVATE-TOKEN", token)
+                    .send()
+                    .await;
+                match res {
+                    Ok(r) => {
+                        log::info!(
+                            "Deleted group access token: {}",
+                            format!("{}-image-puller", name)
+                        );
+                        println!("Response: {:?}", r);
+                        Ok(name.to_string())
+                    }
+                    Err(e) => {
+                        log::error!("Failed to delete group access token: {:?}", e);
+                        Err(e)
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            log::error!("Failed to delete group access token: {:?}", e);
             Err(e)
         }
     }
@@ -260,10 +318,42 @@ mod tests {
             .with_body(r#"{"id": 1, "token": "test"}"#)
             .create();
 
-        std::env::set_var("GITLAB_URL", format!("http://{}", host));
-        std::env::set_var("GITLAB_TOKEN", "test");
         let client = reqwest::Client::new();
         let res = create_group_access_token(
+            &format!("http://{}", host).to_string(),
+            "test",
+            &client,
+            "test",
+            &1,
+        )
+        .await;
+        assert_eq!(res.unwrap_or("".to_string()), "test".to_string());
+    }
+
+    #[tokio::test]
+    // test delete group access token
+    async fn test_delete_group_token() {
+        let mut server = mockito::Server::new_async().await;
+        let host = server.host_with_port();
+        server
+            .mock(
+                "GET",
+                "/api/v4/groups/1/access_tokens?name=test-image-puller",
+            )
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"[{"id": 1, "token": "test"}]"#)
+            .create();
+
+        server
+            .mock("DELETE", "/api/v4/groups/1/access_tokens/1")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"id": 1, "token": "test"}"#)
+            .create();
+
+        let client = reqwest::Client::new();
+        let res = delete_group_access_token(
             &format!("http://{}", host).to_string(),
             "test",
             &client,
