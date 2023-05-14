@@ -28,10 +28,15 @@ jobs:
           curl https://sh.rustup.rs -sSf | sh -s -- -y
           export PATH="$PATH:$HOME/.cargo/bin"
 
-      - uses: Swatinem/rust-cache@v2.3.0
+      - name: Set up cargo cache
+        uses: actions/cache@v3
+        continue-on-error: false
         with:
-          cache-all-crates: "true"
-          cache-on-failure: "true"
+          path: |
+            ~/.cargo/
+            target/            
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
 
       - name: Lint
         run: |
