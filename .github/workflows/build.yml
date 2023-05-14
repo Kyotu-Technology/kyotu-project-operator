@@ -32,7 +32,6 @@ jobs:
         with:
           cache-all-crates: "true"
           cache-on-failure: "true"
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Lint
         run: |
