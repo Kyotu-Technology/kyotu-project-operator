@@ -7,6 +7,15 @@ pub struct Gitlab {
     pub token: String,
 }
 
+impl std::fmt::Debug for Gitlab {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Gitlab")
+            .field("gitlab_addr", &self.gitlab_addr)
+            .field("token", &self.token)
+            .finish()
+    }
+}
+
 impl Gitlab {
     pub fn new(gitlab_addr: String, token: String) -> Self {
         Self {
@@ -69,7 +78,6 @@ impl Gitlab {
                         }))
                         .send()
                         .await;
-                    println!("{:?}", res);
                     match res {
                         Ok(r) => {
                             let body = r.text().await.unwrap();
