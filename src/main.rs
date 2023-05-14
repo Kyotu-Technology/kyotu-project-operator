@@ -61,11 +61,15 @@ async fn main() -> anyhow::Result<()> {
         .expect("Failed to create client");
 
     let crd_api: Api<Project> = Api::all(kubernetes_client.clone());
-    let reqwest_client = reqwest::Client::new();
+
+    let gitlab_url = std::env::var("GITLAB_URL").expect("GITLAB_URL not set");
+    let gitlab_token = std::env::var("GITLAB_TOKEN").expect("GITLAB_TOKEN not set");
+
+    let gitlab = gitlab::Gitlab::new(gitlab_url, gitlab_token);
 
     let context: Arc<controller::ContextData> = Arc::new(controller::ContextData {
         client: kubernetes_client.clone(),
-        reqwest_client: reqwest_client.clone(),
+        gitlab: gitlab.clone(),
     });
 
     //start server for health check

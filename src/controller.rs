@@ -5,7 +5,7 @@ use std::sync::Arc;
 use tokio::time::Duration;
 
 use crate::finalizer;
-use crate::gitlab::{create_group, create_group_access_token};
+use crate::gitlab::Gitlab;
 use crate::namespace::{create_namespace, delete_namespace};
 use crate::project::{create_project, delete_project};
 use crate::project_crd::Project;
@@ -13,16 +13,13 @@ use crate::secret::{create_secret, delete_secret};
 
 pub struct ContextData {
     pub client: Client,
-    pub reqwest_client: reqwest::Client,
+    pub gitlab: Gitlab,
 }
 
 impl ContextData {
     #[allow(dead_code)]
-    pub fn new(client: Client, reqwest_client: reqwest::Client) -> Self {
-        Self {
-            client,
-            reqwest_client,
-        }
+    pub fn new(client: Client, gitlab: Gitlab) -> Self {
+        Self { client, gitlab }
     }
 }
 
@@ -34,11 +31,9 @@ enum ProjectAction {
 
 pub async fn reconcile(project: Arc<Project>, context: Arc<ContextData>) -> Result<Action, Error> {
     let client: Client = context.client.clone();
-    let reqwest_client: reqwest::Client = context.reqwest_client.clone();
+    let gitlab = context.gitlab.clone();
     let project_name = project.metadata.name.clone().unwrap();
     let repo_root = std::env::var("REPO_ROOT").expect("REPO_ROOT not set");
-    let gitlab_url = std::env::var("GITLAB_URL").expect("GITLAB_URL not set");
-    let gitlab_token = std::env::var("GITLAB_TOKEN").expect("GITLAB_TOKEN not set");
     let namespace: String = match project.metadata.namespace.clone() {
         None => {
             return Err(Error::UserInputError(
@@ -55,18 +50,11 @@ pub async fn reconcile(project: Arc<Project>, context: Arc<ContextData>) -> Resu
             create_namespace(client.clone(), &project_name)
                 .await
                 .unwrap();
-            let group_id = create_group(&gitlab_url, &gitlab_token, &reqwest_client, &project_name)
+            let group_id = gitlab.create_group(&project_name).await.unwrap();
+            let pull_token = gitlab
+                .create_group_access_token(&project_name, &group_id)
                 .await
                 .unwrap();
-            let pull_token = create_group_access_token(
-                &gitlab_url,
-                &gitlab_token,
-                &reqwest_client,
-                &project_name,
-                &group_id,
-            )
-            .await
-            .unwrap();
             create_secret(client.clone(), &project_name, &pull_token)
                 .await
                 .unwrap();
