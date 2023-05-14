@@ -194,7 +194,7 @@ impl Gitlab {
                         .post(&url)
                         .header("PRIVATE-TOKEN", &self.token)
                         .json(&json!({
-                            "name": format!("{}-image-puller", name),
+                            "name": name,
                             "scopes": ["read_registry"],
                         }))
                         .send()
