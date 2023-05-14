@@ -176,44 +176,30 @@ impl Gitlab {
         name: &str,
         group_id: &u64,
     ) -> Result<String, reqwest::Error> {
-        let res = self.get_group_access_token_id(name, group_id).await;
+        let url = format!(
+            "{}/api/v4/groups/{}/access_tokens",
+            &self.gitlab_addr, group_id
+        );
+
+        let res = self
+            .client
+            .post(&url)
+            .header("PRIVATE-TOKEN", &self.token)
+            .json(&json!({
+                "name": name,
+                "scopes": ["read_registry"],
+            }))
+            .send()
+            .await;
 
         match res {
-            Ok(r) => match r {
-                Some(_) => {
-                    log::info!("Group access token {} already exists", name);
-                    Ok(name.to_string())
-                }
-                None => {
-                    let url = format!(
-                        "{}/api/v4/groups/{}/access_tokens",
-                        &self.gitlab_addr, group_id
-                    );
-                    let res = self
-                        .client
-                        .post(&url)
-                        .header("PRIVATE-TOKEN", &self.token)
-                        .json(&json!({
-                            "name": name,
-                            "scopes": ["read_registry"],
-                        }))
-                        .send()
-                        .await;
-                    match res {
-                        Ok(r) => {
-                            let body = r.text().await.unwrap();
-                            let json: serde_json::Value = serde_json::from_str(&body).unwrap();
-                            let token = json["token"].as_str().unwrap();
-                            log::info!("Created group access token: {}", name);
-                            Ok(token.to_string())
-                        }
-                        Err(e) => {
-                            log::error!("Failed to create group access token: {:?}", e);
-                            Err(e)
-                        }
-                    }
-                }
-            },
+            Ok(r) => {
+                let body = r.text().await.unwrap();
+                let json: serde_json::Value = serde_json::from_str(&body).unwrap();
+                let token = json["token"].as_str().unwrap();
+                log::info!("Created group access token: {}", name);
+                Ok(token.to_string())
+            }
             Err(e) => {
                 log::error!("Failed to create group access token: {:?}", e);
                 Err(e)
@@ -221,7 +207,6 @@ impl Gitlab {
         }
     }
 
-    #[allow(dead_code)]
     pub async fn delete_group_access_token(
         &self,
         name: &str,
@@ -261,6 +246,32 @@ impl Gitlab {
             },
             Err(e) => {
                 log::error!("Failed to delete group access token: {:?}", e);
+                Err(e)
+            }
+        }
+    }
+
+    pub async fn rotate_group_access_token(
+        &self,
+        name: &str,
+        group_id: &u64,
+    ) -> Result<String, reqwest::Error> {
+        let token_id = self.get_group_access_token_id(name, group_id).await;
+        match token_id {
+            Ok(r) => match r {
+                Some(_) => {
+                    self.delete_group_access_token(name, group_id).await?;
+                    let token = self.create_group_access_token(name, group_id).await?;
+                    log::info!("Rotated group access token: {}", name);
+                    Ok(token)
+                }
+                None => {
+                    log::info!("Group access token {} does not exist", name);
+                    Ok("".to_string())
+                }
+            },
+            Err(e) => {
+                log::error!("Failed to rotate group access token: {:?}", e);
                 Err(e)
             }
         }
@@ -368,16 +379,6 @@ mod tests {
         let host = server.host_with_port();
 
         server
-            .mock(
-                "GET",
-                "/api/v4/groups/1/access_tokens",
-            )
-            .with_status(200)
-            .with_header("content-type", "application/json")
-            .with_body(r#"[{"id":120,"name":"test","scopes":["read_registry"]},{"id":121,"name":"non-test","scopes":["read_registry"]}]"#)
-            .create();
-
-        server
             .mock("POST", "/api/v4/groups/1/access_tokens")
             .with_status(201)
             .with_header("content-type", "application/json")
@@ -414,6 +415,41 @@ mod tests {
 
         let gitlab = Gitlab::new(format!("http://{}", host), "test".to_string());
         let res = gitlab.delete_group_access_token("test", &1).await;
+        assert_eq!(res.unwrap_or("".to_string()), "test".to_string());
+    }
+
+    #[tokio::test]
+    //test rotate group access token
+    async fn test_rotate_group_access_token() {
+        let mut server = mockito::Server::new_async().await;
+        let host = server.host_with_port();
+
+        server
+            .mock(
+                "GET",
+                "/api/v4/groups/1/access_tokens",
+            )
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"[{"id":120,"name":"test","scopes":["read_registry"]},{"id":121,"name":"non-test","scopes":["read_registry"]}]"#)
+            .create();
+
+        server
+            .mock("DELETE", "/api/v4/groups/1/access_tokens/1")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"id": 1, "token": "test"}"#)
+            .create();
+
+        server
+            .mock("POST", "/api/v4/groups/1/access_tokens")
+            .with_status(201)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"id": 1, "token": "test"}"#)
+            .create();
+
+        let gitlab = Gitlab::new(format!("http://{}", host), "test".to_string());
+        let res = gitlab.rotate_group_access_token("test", &1).await;
         assert_eq!(res.unwrap_or("".to_string()), "test".to_string());
     }
 }

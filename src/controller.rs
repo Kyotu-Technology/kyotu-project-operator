@@ -51,10 +51,34 @@ pub async fn reconcile(project: Arc<Project>, context: Arc<ContextData>) -> Resu
                 .await
                 .unwrap();
             let group_id = gitlab.create_group(&project_name).await.unwrap();
-            let pull_token = gitlab
-                .create_group_access_token(&format!("{}-image-puller", project_name), &group_id)
+
+            //check if pull token exists
+            let pull_token = match gitlab
+                .get_group_access_token_id(&format!("{}-image-puller", project_name), &group_id)
                 .await
-                .unwrap();
+                .unwrap()
+            {
+                None => {
+                    let token = gitlab
+                        .create_group_access_token(
+                            &format!("{}-image-puller", project_name),
+                            &group_id,
+                        )
+                        .await
+                        .unwrap();
+                    token
+                }
+                Some(_) => {
+                    let token = gitlab
+                        .rotate_group_access_token(
+                            &format!("{}-image-puller", project_name),
+                            &group_id,
+                        )
+                        .await
+                        .unwrap();
+                    token
+                }
+            };
             create_secret(client.clone(), &project_name, &pull_token)
                 .await
                 .unwrap();

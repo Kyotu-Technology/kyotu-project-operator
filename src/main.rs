@@ -1,5 +1,3 @@
-extern crate git2;
-
 use actix_web::{get, HttpResponse, Responder};
 use futures::stream::StreamExt;
 use kube::{
@@ -21,6 +19,7 @@ mod project_crd;
 mod repository;
 mod secret;
 
+use crate::gitlab::Gitlab;
 use crate::project_crd::Project;
 
 #[derive(Serialize, Deserialize)]
@@ -65,7 +64,7 @@ async fn main() -> anyhow::Result<()> {
     let gitlab_url = std::env::var("GITLAB_URL").expect("GITLAB_URL not set");
     let gitlab_token = std::env::var("GITLAB_TOKEN").expect("GITLAB_TOKEN not set");
 
-    let gitlab = gitlab::Gitlab::new(gitlab_url, gitlab_token);
+    let gitlab = Gitlab::new(gitlab_url, gitlab_token);
 
     let context: Arc<controller::ContextData> = Arc::new(controller::ContextData {
         client: kubernetes_client.clone(),
