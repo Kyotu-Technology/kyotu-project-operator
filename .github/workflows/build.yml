@@ -33,10 +33,7 @@ jobs:
         continue-on-error: false
         with:
           path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
+            ~/.cargo/
             target/            
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-
@@ -48,6 +45,21 @@ jobs:
 
       - name: Test
         run: cargo test
+
+      - name: Install Checks
+        run: |
+          cargo install cargo-deny || true
+          cargo install cargo-outdated || true
+          cargo install cargo-audit || true
+          cargo install cargo-pants || true
+
+      - name: Check
+        run: |
+          cargo deny check
+          cargo outdated --exit-code 1 -d 1
+          rm -rf ~/.cargo/advisory-db
+          cargo audit
+          cargo pants --ignore-file .pants-ignore 
 
   #push on commit to main
   push_docker:
