@@ -6,7 +6,7 @@ use kube::{
     runtime::{controller::Controller, watcher::Config},
 };
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
+use std::{f32::consts::E, sync::Arc};
 use tokio::signal::unix::{signal, SignalKind};
 use tracing::info;
 use tracing_actix_web::TracingLogger;
@@ -96,16 +96,26 @@ async fn main() -> anyhow::Result<()> {
             }
         });
 
-    let _server = tokio::spawn(srv.run());
+    let server = tokio::spawn(srv.run());
 
-    let _contro = tokio::spawn(controller);
+    let contro = tokio::spawn(controller);
 
-    let mut sig_term = signal(SignalKind::terminate())?;
-    let mut sig_int = signal(SignalKind::interrupt())?;
+    let mut sigterm = signal(SignalKind::terminate()).unwrap();
+    let mut sigint = signal(SignalKind::interrupt()).unwrap();
 
     tokio::select! {
-        _ = sig_term.recv() => log::info!("SIGTERM received"),
-        _ = sig_int.recv() => log::info!("SIGINT received"),
+        _ = sigterm.recv() => {
+            info!("SIGTERM received");
+        },
+        _ = sigint.recv() => {
+            info!("SIGINT received");
+        },
+        _ = server => {
+            info!("Server stopped");
+        },
+        _ = contro => {
+            info!("Controller stopped");
+        }
     }
 
     Ok(())

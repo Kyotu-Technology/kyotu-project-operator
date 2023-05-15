@@ -27,7 +27,7 @@ impl Repository {
         let mut callbacks = git2::RemoteCallbacks::new();
 
         match cred_type {
-            CredentialType::SSH_MEMORY => {
+            CredentialType::SSH_KEY => {
                 callbacks.credentials(Self::credentials_cb_ssh);
             }
             CredentialType::USER_PASS_PLAINTEXT => {
@@ -81,7 +81,7 @@ impl Repository {
         let mut push_callbacks = git2::RemoteCallbacks::new();
 
         match self.cred_type {
-            CredentialType::SSH_MEMORY => {
+            CredentialType::SSH_KEY => {
                 push_callbacks.credentials(Self::credentials_cb_ssh);
             }
             CredentialType::USER_PASS_PLAINTEXT => {
@@ -136,10 +136,10 @@ impl Repository {
         if _cred.contains(git2::CredentialType::USERNAME) {
             return git2::Cred::username(user);
         }
-        match std::env::var("SSH_KEY") {
+        match std::env::var("SSH_KEY_PATH") {
             Ok(p) => {
                 log::debug!("authenticate with user {} and ssh key", user);
-                git2::Cred::ssh_key_from_memory(user, None, &p, None)
+                git2::Cred::ssh_key(user, None, std::path::Path::new(&p), None)
             }
             _ => Err(git2::Error::from_str("unable to get ssh key from SSH_KEY")),
         }

@@ -58,11 +58,8 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.config.gitlabTokenSecret }}
                   key: {{ .Values.config.gitlabTokenSecretKey }}
-            - name: SSH_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.config.sshKeySecret }}
-                  key: {{ .Values.config.sshKeySecretKey }}
+            - name: SSH_KEY_PATH
+              value: {{ .Values.config.sshKeyPath }}
           livenessProbe:
             httpGet:
               path: /health
@@ -73,6 +70,14 @@ spec:
               port: http
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: ssh-key
+              mountPath: {{ .Values.config.sshKeyPath }}
+              readOnly: true
+      volumes:
+        - name: ssh-key
+          secret:
+            secretName: {{ .Values.config.sshKeySecret }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

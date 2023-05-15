@@ -32,7 +32,7 @@ pub async fn add_rbacs(
         &repo_url,
         &repo_branch,
         &repo_root.to_string_lossy(),
-        CredentialType::SSH_MEMORY,
+        CredentialType::SSH_KEY,
     )
     .expect("Failed to clone repo");
 
@@ -208,7 +208,7 @@ pub async fn remove_rbacs(
         &repo_url,
         &repo_branch,
         &repo_root.to_string_lossy(),
-        CredentialType::SSH_MEMORY,
+        CredentialType::SSH_KEY,
     )
     .expect("Failed to clone repo");
 

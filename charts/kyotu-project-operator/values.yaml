@@ -30,8 +30,9 @@ config:
   deployKeySecretKey: deployKey
   gitlabTokenSecret: kyotu-project-operator-token
   gitlabTokenSecretKey: gitlabToken
-  sshKeySecret: kyotu-project-operator-token
-  sshKeySecretKey: sshKey
+  sshKeyPath: /tmp/ssh
+  sshKeySecret: kyotu-project-operator-ssh-key
+  sshKeySecretKey: id_rsa
 
 service:
   type: ClusterIP
