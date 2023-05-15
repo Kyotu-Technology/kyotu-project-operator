@@ -95,9 +95,9 @@ async fn main() -> anyhow::Result<()> {
             }
         });
 
-    let server = tokio::spawn(srv.run());
+    let _server = tokio::spawn(srv.run());
 
-    let contro = tokio::spawn(controller);
+    let _contro = tokio::spawn(controller);
 
     let mut sig_term = signal(SignalKind::terminate())?;
     let mut sig_int = signal(SignalKind::interrupt())?;
