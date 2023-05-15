@@ -30,7 +30,7 @@ config:
   deployKeySecretKey: deployKey
   gitlabTokenSecret: kyotu-project-operator-token
   gitlabTokenSecretKey: gitlabToken
-  sshKeyPath: /tmp/ssh
+  sshKeyPath: /tmp/ssh/id_rsa
   sshKeySecret: kyotu-project-operator-ssh-key
   sshKeySecretKey: id_rsa
 
