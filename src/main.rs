@@ -7,7 +7,7 @@ use kube::{
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use tokio::signal::ctrl_c;
+use tokio::signal::unix::{signal, SignalKind};
 use tracing::info;
 use tracing_actix_web::TracingLogger;
 
@@ -95,17 +95,16 @@ async fn main() -> anyhow::Result<()> {
             }
         });
 
-    tokio::spawn(srv.run());
+    let server = tokio::spawn(srv.run());
 
-    tokio::spawn(controller);
+    let contro = tokio::spawn(controller);
 
-    match ctrl_c().await {
-        Ok(_) => {
-            info!("Received Ctrl-C, shutting down");
-        }
-        Err(e) => {
-            eprintln!("Failed to listen for Ctrl-C: {:?}", e);
-        }
+    let mut sig_term = signal(SignalKind::terminate())?;
+    let mut sig_int = signal(SignalKind::interrupt())?;
+
+    tokio::select! {
+        _ = sig_term.recv() => log::info!("SIGTERM received"),
+        _ = sig_int.recv() => log::info!("SIGINT received"),
     }
 
     Ok(())
