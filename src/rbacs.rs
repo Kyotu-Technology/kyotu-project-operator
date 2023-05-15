@@ -54,13 +54,13 @@ pub async fn add_rbacs(
     let mut new_policy = serde_yaml::mapping::Mapping::new();
     new_policy.insert(
         serde_yaml::Value::String("name".to_string()),
-        serde_yaml::Value::String(format!("{}_access", name)),
+        serde_yaml::Value::String(format!("{}_access", name.replace('-', "_"))),
     );
     new_policy.insert(
         serde_yaml::Value::String("rules".to_string()),
         serde_yaml::Value::String(format!(
             "path \"secret/{}/*\" {{\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}}",
-            name
+            name.replace('-', "_")
         )),
     );
 
@@ -88,7 +88,10 @@ pub async fn add_rbacs(
     );
     //add policies as array
     let mut group_policies = Vec::new();
-    group_policies.push(serde_yaml::Value::String(format!("{}_access", name)));
+    group_policies.push(serde_yaml::Value::String(format!(
+        "{}_access",
+        name.replace('-', "_")
+    )));
     new_group.insert(
         serde_yaml::Value::String("policies".to_string()),
         serde_yaml::Value::Sequence(group_policies),
@@ -225,8 +228,9 @@ pub async fn remove_rbacs(
 
     //remove policy with key name and value <name>_access
     let mut policies = policies.to_owned();
-    policies
-        .retain(|policy| policy["name"].as_str().unwrap() != format!("{}_access", name).as_str());
+    policies.retain(|policy| {
+        policy["name"].as_str().unwrap() != format!("{}_access", name.replace('-', "_")).as_str()
+    });
 
     //update vault_values yaml with new policy
     let mut vault_values_yaml = vault_values_yaml.to_owned();
