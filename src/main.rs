@@ -6,7 +6,7 @@ use kube::{
     runtime::{controller::Controller, watcher::Config},
 };
 use serde::{Deserialize, Serialize};
-use std::{f32::consts::E, sync::Arc};
+use std::sync::Arc;
 use tokio::signal::unix::{signal, SignalKind};
 use tracing::info;
 use tracing_actix_web::TracingLogger;
