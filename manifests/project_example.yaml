@@ -5,3 +5,4 @@ metadata:
 spec:
   projectId: test-project
   environmentType: dev
+  googleGroup: test.crew@kyotutechnology.com

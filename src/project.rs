@@ -1,3 +1,4 @@
+use git2::CredentialType;
 use std::path::Path;
 use tera::{Context, Tera};
 
@@ -34,8 +35,13 @@ pub async fn create_project(name: &str, repo_root: &Path) -> Result<String, Proj
         std::fs::remove_dir_all(repo_root).expect("Failed to remove repo root");
     }
     //clone repo into project folder
-    let argo_repository = Repository::clone(&repo_url, &repo_branch, &repo_root.to_string_lossy())
-        .expect("Failed to clone repo");
+    let argo_repository = Repository::clone(
+        &repo_url,
+        &repo_branch,
+        &repo_root.to_string_lossy(),
+        CredentialType::USER_PASS_PLAINTEXT,
+    )
+    .expect("Failed to clone repo");
 
     //create project folder in repo_root
     let project_path = Path::new(&repo_root).join("manifests").join(name);
@@ -99,8 +105,13 @@ pub async fn delete_project(name: &str, repo_root: &Path) -> Result<String, Proj
         std::fs::remove_dir_all(repo_root).expect("Failed to remove repo root");
     }
     //clone repo into project folder
-    let argo_repository = Repository::clone(&repo_url, &repo_branch, &repo_root.to_string_lossy())
-        .expect("Failed to clone repo");
+    let argo_repository = Repository::clone(
+        &repo_url,
+        &repo_branch,
+        &repo_root.to_string_lossy(),
+        CredentialType::USER_PASS_PLAINTEXT,
+    )
+    .expect("Failed to clone repo");
 
     let project_path = Path::new(&repo_root).join("manifests").join(name);
     match std::fs::remove_dir_all(&project_path) {

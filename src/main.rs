@@ -17,6 +17,7 @@ mod gitlab;
 mod namespace;
 mod project;
 mod project_crd;
+mod rbacs;
 mod repository;
 mod secret;
 
