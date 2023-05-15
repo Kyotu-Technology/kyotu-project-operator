@@ -47,9 +47,14 @@ pub async fn reconcile(project: Arc<Project>, context: Arc<ContextData>) -> Resu
         ProjectAction::Create => {
             let repo_root = Path::new(repo_root.as_str());
             finalizer::add(client.clone(), &project_name, &namespace).await?;
-            create_namespace(client.clone(), &project_name)
-                .await
-                .unwrap();
+
+            match create_namespace(client.clone(), &project_name).await {
+                Ok(_) => {}
+                Err(e) => {
+                    log::error!("Failed to create namespace: {:?}", e);
+                }
+            }
+
             let group_id = gitlab.create_group(&project_name).await.unwrap();
 
             //check if pull token exists
