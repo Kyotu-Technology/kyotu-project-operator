@@ -26,9 +26,17 @@ pub async fn create_namespace(client: Client, name: &str) -> anyhow::Result<Stri
             Ok(name.to_string())
         }
         Err(_) => {
-            let res = ns_api.create(&PostParams::default(), &namespace).await?;
-            log::info!("Created namespace {}", res.metadata.name.unwrap());
-            Ok(name.to_string())
+            let res = ns_api.create(&PostParams::default(), &namespace).await;
+            match res {
+                Ok(r) => {
+                    log::info!("Created namespace {}", r.metadata.name.unwrap());
+                    Ok(name.to_string())
+                }
+                Err(e) => {
+                    log::error!("Error creating namespace: {}", e);
+                    Err(anyhow::anyhow!("Error creating namespace: {}", e))
+                }
+            }
         }
     }
 }
