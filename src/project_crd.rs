@@ -16,4 +16,5 @@ use serde::{Deserialize, Serialize};
 pub struct ProjectSpec {
     pub projectId: String,
     pub environmentType: String,
+    pub googleGroup: String,
 }

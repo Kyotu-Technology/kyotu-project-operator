@@ -9,6 +9,7 @@ use crate::gitlab::Gitlab;
 use crate::namespace::{create_namespace, delete_namespace};
 use crate::project::{create_project, delete_project};
 use crate::project_crd::Project;
+use crate::rbacs::{add_rbacs, remove_rbacs};
 use crate::secret::{create_secret, delete_secret};
 
 pub struct ContextData {
@@ -33,7 +34,8 @@ pub async fn reconcile(project: Arc<Project>, context: Arc<ContextData>) -> Resu
     let client: Client = context.client.clone();
     let gitlab = context.gitlab.clone();
     let project_name = project.metadata.name.clone().unwrap();
-    let repo_root = std::env::var("REPO_ROOT").expect("REPO_ROOT not set");
+    let google_group = project.spec.googleGroup.clone();
+    let repo_root = std::env::var("DEPLOY_ROOT").expect("DEPLOY_ROOT not set");
     let namespace: String = match project.metadata.namespace.clone() {
         None => {
             return Err(Error::UserInputError(
@@ -84,10 +86,17 @@ pub async fn reconcile(project: Arc<Project>, context: Arc<ContextData>) -> Resu
                 .await
                 .unwrap();
             create_project(&project_name, repo_root).await.unwrap();
+            add_rbacs(&project_name, repo_root, &google_group)
+                .await
+                .unwrap();
+
             Ok(Action::requeue(Duration::from_secs(10)))
         }
         ProjectAction::Delete => {
             let repo_root = Path::new(repo_root.as_str());
+            remove_rbacs(&project_name, repo_root, &google_group)
+                .await
+                .unwrap();
             match delete_project(&project_name, repo_root).await {
                 Ok(_) => {}
                 Err(e) => {

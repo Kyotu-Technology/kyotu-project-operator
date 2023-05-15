@@ -1,0 +1,6 @@
+    p, role:{{ name }}, applications, get, {{ name }}/*, allow 
+    p, role:{{ name }}, applications, sync, {{ name }}/*, allow 
+    p, role:{{ name }}, applications, update, {{ name }}/*, allow
+    p, role:{{ name }}, logs, get, {{ name }}/*, allow
+    p, role:{{ name }}, exec, create, {{ name }}/*, allow
+    g, {{ google_group }}, role:{{ name }}

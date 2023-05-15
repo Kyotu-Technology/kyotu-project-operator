@@ -1,9 +1,11 @@
+use git2::CredentialType;
 use std::path::{Path, PathBuf};
 use tracing::log;
 
 pub struct Repository {
     inner: git2::Repository,
     base_path: PathBuf,
+    cred_type: CredentialType,
 }
 
 impl std::fmt::Debug for Repository {
@@ -16,9 +18,27 @@ impl std::fmt::Debug for Repository {
 
 impl Repository {
     //clone repository
-    pub fn clone(remote_url: &str, remote_branch: &str, target_path: &str) -> anyhow::Result<Self> {
+    pub fn clone(
+        remote_url: &str,
+        remote_branch: &str,
+        target_path: &str,
+        cred_type: CredentialType,
+    ) -> anyhow::Result<Self> {
         let mut callbacks = git2::RemoteCallbacks::new();
-        callbacks.credentials(Self::credentials_cb);
+
+        match cred_type {
+            CredentialType::SSH_MEMORY => {
+                callbacks.credentials(Self::credentials_cb_ssh);
+            }
+            CredentialType::USER_PASS_PLAINTEXT => {
+                callbacks.credentials(Self::credentials_cb_pass);
+            }
+            _ => {
+                log::error!("Unknown credential type");
+                ::std::process::exit(1);
+            }
+        }
+
         //callbacks.transfer_progress(transfer_progress_cb);
 
         let mut fetch_options = git2::FetchOptions::new();
@@ -35,6 +55,7 @@ impl Repository {
         Ok(Self {
             inner: repo,
             base_path: PathBuf::from(target_path),
+            cred_type,
         })
     }
 
@@ -58,7 +79,19 @@ impl Repository {
         let mut remote = self.inner.find_remote("origin")?;
         let mut push_options = git2::PushOptions::new();
         let mut push_callbacks = git2::RemoteCallbacks::new();
-        push_callbacks.credentials(Self::credentials_cb);
+
+        match self.cred_type {
+            CredentialType::SSH_MEMORY => {
+                push_callbacks.credentials(Self::credentials_cb_ssh);
+            }
+            CredentialType::USER_PASS_PLAINTEXT => {
+                push_callbacks.credentials(Self::credentials_cb_pass);
+            }
+            _ => {
+                log::error!("Unknown credential type");
+                ::std::process::exit(1);
+            }
+        }
         //push_callbacks.transfer_progress(|ref progress| transfer_progress_cb(progress));
         push_options.remote_callbacks(push_callbacks);
 
@@ -72,7 +105,7 @@ impl Repository {
         Ok(())
     }
 
-    pub fn credentials_cb(
+    pub fn credentials_cb_pass(
         _user: &str,
         _user_from_url: Option<&str>,
         _cred: git2::CredentialType,
@@ -82,21 +115,6 @@ impl Repository {
         if _cred.contains(git2::CredentialType::USERNAME) {
             return git2::Cred::username(user);
         }
-
-        match std::env::var("KEY_PATH") {
-            Ok(k) => {
-                log::debug!(
-                    "authenticate with user {} and private key located in {}",
-                    user,
-                    k
-                );
-                return git2::Cred::ssh_key(user, None, std::path::Path::new(&k), None);
-            }
-            Err(_) => {
-                log::debug!("No private key found, trying to authenticate with password");
-            }
-        };
-
         match std::env::var("DEPLOY_KEY") {
             Ok(p) => {
                 log::debug!("authenticate with user {} and password", user);
@@ -105,6 +123,25 @@ impl Repository {
             _ => Err(git2::Error::from_str(
                 "unable to get password from DEPLOY_KEY",
             )),
+        }
+    }
+
+    pub fn credentials_cb_ssh(
+        _user: &str,
+        _user_from_url: Option<&str>,
+        _cred: git2::CredentialType,
+    ) -> Result<git2::Cred, git2::Error> {
+        let user = _user_from_url.unwrap_or("git");
+
+        if _cred.contains(git2::CredentialType::USERNAME) {
+            return git2::Cred::username(user);
+        }
+        match std::env::var("SSH_KEY") {
+            Ok(p) => {
+                log::debug!("authenticate with user {} and ssh key", user);
+                git2::Cred::ssh_key_from_memory(user, None, &p, None)
+            }
+            _ => Err(git2::Error::from_str("unable to get ssh key from SSH_KEY")),
         }
     }
 

@@ -38,8 +38,10 @@ spec:
           env:
             - name: GITLAB_URL
               value: {{ .Values.config.gitlabUrl }}
-            - name: REPO_ROOT
-              value: {{ .Values.config.repoRoot }}
+            - name: DEPLOY_ROOT
+              value: {{ .Values.config.deployRoot }}
+            - name: FLUX_ROOT
+              value: {{ .Values.config.fluxRoot }}
             - name: ARGO_REPO
               value: {{ .Values.config.argoRepo }}
             - name: FLUX_REPO
@@ -56,6 +58,11 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.config.gitlabTokenSecret }}
                   key: {{ .Values.config.gitlabTokenSecretKey }}
+            - name: SSH_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.config.sshKeySecret }}
+                  key: {{ .Values.config.sshKeySecretKey }}
           livenessProbe:
             httpGet:
               path: /health
