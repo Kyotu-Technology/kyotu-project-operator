@@ -30,3 +30,6 @@ tracing-actix-web = "0.7.4"
 reqwest = { version = "0.11.17", features = ["json"] }
 mockito = "1.0.2"
 base64 = "0.21.0"
+validator = { version="0.16.0", features=["derive"] }
+lazy_static = "1.4.0"
+regex = "1.5.4"
