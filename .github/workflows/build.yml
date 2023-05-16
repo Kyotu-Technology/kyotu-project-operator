@@ -136,7 +136,7 @@ jobs:
     - name: Change version in Cargo.toml
       if: startsWith(github.ref, 'refs/tags/') && !startsWith(github.ref, 'refs/tags/helm-')
       run: |
-        sed -i "s/version = .*/version = \"${{ steps.get_version.outputs.VERSION }}\"/g" Cargo.toml
+        sed -i "0,/version = .*/s/version = .*/version = \"${{ steps.get_version.outputs.VERSION }}\"/g" Cargo.toml
 
     - name: Push back to repo
       if: startsWith(github.ref, 'refs/tags/') && !startsWith(github.ref, 'refs/tags/helm-')
