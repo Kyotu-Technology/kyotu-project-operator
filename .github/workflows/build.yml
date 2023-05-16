@@ -38,14 +38,6 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-
 
-      - name: Lint
-        run: |
-          cargo fmt --all -- --check
-          cargo clippy -- -D warnings  
-
-      - name: Test
-        run: cargo test
-
       - name: Install Checks
         run: |
           cargo install cargo-deny || true
@@ -53,12 +45,32 @@ jobs:
           cargo install cargo-audit || true
           cargo install cargo-pants || true
 
-      - name: Check
+      - name: Format
+        run: |
+          cargo fmt --all -- --check
+          
+      - name: Clippy
+        run: |
+          cargo clippy -- -D warnings
+
+      - name: Test
+        run: cargo test
+
+      - name: Deny
         run: |
           cargo deny check
+      
+      - name: Outdated
+        run: |
           cargo outdated --exit-code 1 -d 1
+      
+      - name: Audit 
+        run: |
           rm -rf ~/.cargo/advisory-db
           cargo audit
+
+      - name: Pants
+        run: |
           cargo pants --ignore-file .pants-ignore 
 
   #push on commit to main
