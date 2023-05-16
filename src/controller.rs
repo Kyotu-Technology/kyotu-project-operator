@@ -48,6 +48,7 @@ pub async fn reconcile(project: Arc<Project>, context: Arc<ContextData>) -> Resu
         Some(namespace) => namespace,
     };
 
+    #[allow(clippy::needless_return)]
     return match determine_action(&project) {
         ProjectAction::Create => {
             finalizer::add(client.clone(), &project_name, &namespace).await?;
