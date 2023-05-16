@@ -34,7 +34,7 @@ pub async fn reconcile(project: Arc<Project>, context: Arc<ContextData>) -> Resu
     let client: Client = context.client.clone();
     let gitlab = context.gitlab.clone();
     let project_name = project.metadata.name.clone().unwrap();
-    let google_group = project.spec.googleGroup.clone();
+    let google_group = project.spec.google_group.clone();
     let repo_root = std::env::var("DEPLOY_ROOT").expect("DEPLOY_ROOT not set");
     let flux_root = std::env::var("FLUX_ROOT").expect("FLUX_ROOT not set");
     let repo_root = Path::new(repo_root.as_str());
