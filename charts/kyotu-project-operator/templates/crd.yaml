@@ -29,7 +29,9 @@ spec:
                   type: string
                   enum:
                   - dev
+                  - qa
                   - test
+                  - stage
                   - prod
                 googleGroup:
                   type: string

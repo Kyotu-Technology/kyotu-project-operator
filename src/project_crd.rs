@@ -6,7 +6,7 @@ use validator::Validate;
 
 lazy_static! {
     pub static ref RE_ENV_TYPE: regex::Regex =
-        regex::Regex::new(r"^(dev|qa|staging|prod)$").unwrap();
+        regex::Regex::new(r"^(dev|qa|test|stage|prod)$").unwrap();
 }
 
 #[derive(CustomResource, Serialize, Deserialize, Debug, PartialEq, Clone, JsonSchema, Validate)]
