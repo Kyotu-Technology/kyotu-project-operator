@@ -1,6 +1,7 @@
 use reqwest::Client;
 use serde_json::json;
 
+#[derive(Clone)]
 pub struct Gitlab {
     pub client: Client,
     pub gitlab_addr: String,
@@ -22,14 +23,6 @@ impl Gitlab {
             client: Client::new(),
             gitlab_addr,
             token,
-        }
-    }
-
-    pub fn clone(&self) -> Self {
-        Self {
-            client: self.client.clone(),
-            gitlab_addr: self.gitlab_addr.clone(),
-            token: self.token.clone(),
         }
     }
 
