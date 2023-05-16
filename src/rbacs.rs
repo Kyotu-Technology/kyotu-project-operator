@@ -1,7 +1,55 @@
-use git2::CredentialType;
-use std::path::Path;
-
 use crate::repository::Repository;
+use git2::CredentialType;
+use serde::{Deserialize, Serialize};
+use std::path::Path;
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct VaultConfig {
+    vault: Vault,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct Vault {
+    external_config: ExternalConfig,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct ExternalConfig {
+    policies: Vec<Policy>,
+    groups: Vec<Group>,
+    #[serde(rename = "group-aliases")]
+    group_aliases: Vec<GroupAlias>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct Policy {
+    name: String,
+    rules: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct Group {
+    name: String,
+    policies: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    metadata: Option<Metadata>,
+    #[serde(rename = "type")]
+    group_type: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct Metadata {
+    privileged: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct GroupAlias {
+    name: String,
+    mountpath: String,
+    group: String,
+}
 
 pub async fn add_rbacs(
     name: &str,
@@ -42,145 +90,82 @@ pub async fn add_rbacs(
     ))
     .expect("Something went wrong reading the file");
 
-    //add value to vault_values yaml using serde_yaml
-    let vault_values_yaml: serde_yaml::Value = serde_yaml::from_str(&vault_values).unwrap();
+    let mut vault_values: VaultConfig = serde_yaml::from_str(&vault_values).unwrap();
 
-    //get array of policies that are under vault.externalConfig.policies key
-    let policies = vault_values_yaml["vault"]["externalConfig"]["policies"]
-        .as_sequence()
-        .unwrap();
-
-    //add new policy to with key name and value flux-<project_name>
-    let mut policies = policies.to_owned();
+    //create new policy
+    let policy_name = format!("{}_access", name.replace('-', "_"));
+    let new_policy = Policy{
+        name: policy_name.clone(),
+        rules: format!(
+            "path \"secret/{}/*\" {{\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}}",
+            name.replace('-', "_")
+        ),
+    };
 
     //check if policy already exists
     let mut policy_exists = false;
-    for policy in &policies {
-        if policy["name"].as_str().unwrap() == format!("{}_access", name.replace('-', "_")) {
+    for policy in vault_values.vault.external_config.policies.iter() {
+        if policy.name == new_policy.name {
             policy_exists = true;
         }
     }
-
+    //add new policy to vault_values
     if !policy_exists {
-        let mut new_policy = serde_yaml::mapping::Mapping::new();
-        new_policy.insert(
-            serde_yaml::Value::String("name".to_string()),
-            serde_yaml::Value::String(format!("{}_access", name.replace('-', "_"))),
-        );
-        new_policy.insert(
-            serde_yaml::Value::String("rules".to_string()),
-            serde_yaml::Value::String(format!(
-                "path \"secret/{}/*\" {{\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}}",
-                name.replace('-', "_")
-            )),
-        );
-        policies.push(serde_yaml::Value::Mapping(new_policy));
+        vault_values.vault.external_config.policies.push(new_policy);
     }
 
-    //update vault_values yaml with new policy
-    let mut vault_values_yaml = vault_values_yaml.to_owned();
-    vault_values_yaml["vault"]["externalConfig"]["policies"] =
-        serde_yaml::Value::Sequence(policies);
-
-    //add group
-    let groups = vault_values_yaml["vault"]["externalConfig"]["groups"]
-        .as_sequence()
-        .unwrap();
-
-    let mut groups = groups.to_owned();
-
-    //check if group already exists
+    //check if group already exists if it does add policy to group else create new group
     let mut group_exists = false;
-    for group in &groups {
-        if group["name"].as_str().unwrap() == google_group {
+    for group in vault_values.vault.external_config.groups.iter_mut() {
+        if group.name == google_group {
             group_exists = true;
-        }
-    }
-
-    if !group_exists {
-        let mut new_group = serde_yaml::mapping::Mapping::new();
-        new_group.insert(
-            serde_yaml::Value::String("name".to_string()),
-            serde_yaml::Value::String(google_group.to_string()),
-        );
-        new_group.insert(
-            serde_yaml::Value::String("type".to_string()),
-            serde_yaml::Value::String("external".to_string()),
-        );
-
-        //add policies as array
-        let mut group_policies = Vec::new();
-        group_policies.push(serde_yaml::Value::String(format!(
-            "{}_access",
-            name.replace('-', "_")
-        )));
-        new_group.insert(
-            serde_yaml::Value::String("policies".to_string()),
-            serde_yaml::Value::Sequence(group_policies),
-        );
-
-        groups.push(serde_yaml::Value::Mapping(new_group));
-    } else {
-        //add policy to existing group
-        for group in &mut groups {
-            if group["name"].as_str().unwrap() == google_group {
-                let group_policies = group["policies"].as_sequence_mut().unwrap();
-                group_policies.push(serde_yaml::Value::String(format!(
-                    "{}_access",
-                    name.replace('-', "_")
-                )));
+            //add policy to group if it doesn't already exist
+            if !group.policies.contains(&policy_name) {
+                group.policies.push(policy_name.clone());
             }
         }
     }
+    //add new group to vault_values
+    if !group_exists {
+        let new_group = Group {
+            name: google_group.to_string(),
+            policies: vec![policy_name],
+            metadata: None,
+            group_type: "external".to_string(),
+        };
+        vault_values.vault.external_config.groups.push(new_group);
+    }
 
-    vault_values_yaml["vault"]["externalConfig"]["groups"] = serde_yaml::Value::Sequence(groups);
-
-    //add group-aliases
-    let group_aliases = vault_values_yaml["vault"]["externalConfig"]["group-aliases"]
-        .as_sequence()
-        .unwrap();
-
-    let mut group_aliases = group_aliases.to_owned();
-
-    //check if group alias already exists
+    //check if group alias exists if not create new group alias
     let mut group_alias_exists = false;
-    for group_alias in &group_aliases {
-        if group_alias["name"].as_str().unwrap() == google_group {
+    for group_alias in vault_values.vault.external_config.group_aliases.iter() {
+        if group_alias.name == google_group {
             group_alias_exists = true;
         }
     }
-
-    //if group alias doesn't exist, add it
+    //add new group alias to vault_values
     if !group_alias_exists {
-        let mut new_group_alias = serde_yaml::mapping::Mapping::new();
-        new_group_alias.insert(
-            serde_yaml::Value::String("name".to_string()),
-            serde_yaml::Value::String(google_group.to_string()),
-        );
-        new_group_alias.insert(
-            serde_yaml::Value::String("mountpath".to_string()),
-            serde_yaml::Value::String("oidc".to_string()),
-        );
-        new_group_alias.insert(
-            serde_yaml::Value::String("group".to_string()),
-            serde_yaml::Value::String(google_group.to_string()),
-        );
-        group_aliases.push(serde_yaml::Value::Mapping(new_group_alias));
+        let new_group_alias = GroupAlias {
+            name: google_group.to_string(),
+            mountpath: "oidc".to_string(),
+            group: google_group.to_string(),
+        };
+        vault_values
+            .vault
+            .external_config
+            .group_aliases
+            .push(new_group_alias);
     }
 
-    vault_values_yaml["vault"]["externalConfig"]["group-aliases"] =
-        serde_yaml::Value::Sequence(group_aliases);
-
     //write vault_values yaml back to file
-    let vault_values_yaml = serde_yaml::to_string(&vault_values_yaml).unwrap();
     std::fs::write(
         format!(
             "{}/namespaces/vault/vault/rbac_values.yaml",
             repo_root.to_string_lossy()
         ),
-        vault_values_yaml,
+        serde_yaml::to_string(&vault_values).unwrap(),
     )
-    .unwrap();
+    .expect("Unable to write file");
 
     //argo rbac
     let mut argo_values = std::fs::read_to_string(format!(
@@ -259,85 +244,53 @@ pub async fn remove_rbacs(
     ))
     .expect("Something went wrong reading the file");
 
-    //add value to vault_values yaml using serde_yaml
-    let vault_values_yaml: serde_yaml::Value = serde_yaml::from_str(&vault_values).unwrap();
+    let mut vault_values: VaultConfig = serde_yaml::from_str(&vault_values).unwrap();
 
-    //get array of policies that are under vault.externalConfig.policies key
-    let policies = vault_values_yaml["vault"]["externalConfig"]["policies"]
-        .as_sequence()
-        .unwrap();
+    //remove policy from vault_values
 
-    //remove policy with key name and value <name>_access
-    let mut policies = policies.to_owned();
-    policies.retain(|policy| {
-        policy["name"].as_str().unwrap() != format!("{}_access", name.replace('-', "_")).as_str()
-    });
+    let policy_name = format!("{}_access", name.replace('-', "_"));
+    vault_values
+        .vault
+        .external_config
+        .policies
+        .retain(|policy| policy.name != policy_name);
 
-    //update vault_values yaml with new policy
-    let mut vault_values_yaml = vault_values_yaml.to_owned();
-    vault_values_yaml["vault"]["externalConfig"]["policies"] =
-        serde_yaml::Value::Sequence(policies);
+    //remove policy from all groups
+    for group in vault_values.vault.external_config.groups.iter_mut() {
+        group.policies.retain(|policy| policy != &policy_name);
+    }
 
-    //remove group
-    let groups = vault_values_yaml["vault"]["externalConfig"]["groups"]
-        .as_sequence()
-        .unwrap();
+    //remove groups with no policies
+    vault_values
+        .vault
+        .external_config
+        .groups
+        .retain(|group| !group.policies.is_empty());
 
-    //initialiaze empty groups array
-    let mut new_groups: Vec<serde_yaml::Value> = Vec::new();
-
-    for group in groups {
-        println!("{}", group["name"].as_str().unwrap());
-        //print group policies
-        println!("before: {:?}", group["policies"].as_sequence().unwrap());
-        let mut group = group.to_owned();
-        group["policies"]
-            .as_sequence_mut()
-            .unwrap()
-            .retain(|policy| {
-                policy.as_str().unwrap() != format!("{}_access", name.replace('-', "_")).as_str()
-            });
-        //push group to new_groups if it has policies
-        if group["policies"].as_sequence().unwrap().is_empty() {
-            new_groups.push(group);
+    //remove group alias if none group with google_group exists
+    let mut group_exists = false;
+    for group in vault_values.vault.external_config.groups.iter() {
+        if group.name == google_group {
+            group_exists = true;
         }
     }
 
-    vault_values_yaml["vault"]["externalConfig"]["groups"] =
-        serde_yaml::Value::Sequence(new_groups);
-
-    //remove group-aliases
-
-    let group_aliases = vault_values_yaml["vault"]["externalConfig"]["group-aliases"]
-        .as_sequence()
-        .unwrap();
-
-    let mut group_aliases = group_aliases.to_owned();
-
-    let new_groups = vault_values_yaml["vault"]["externalConfig"]["groups"]
-        .as_sequence()
-        .unwrap();
-    //if group is in new_groups leave it in group_aliases
-    group_aliases.retain(|group_alias| {
-        new_groups
-            .iter()
-            .any(|group| group["name"].as_str().unwrap() == group_alias["group"].as_str().unwrap())
-    });
-
-    vault_values_yaml["vault"]["externalConfig"]["group-aliases"] =
-        serde_yaml::Value::Sequence(group_aliases);
-
+    if !group_exists {
+        vault_values
+            .vault
+            .external_config
+            .group_aliases
+            .retain(|group_alias| group_alias.name != google_group);
+    }
     //write vault_values yaml back to file
-
-    let vault_values_yaml = serde_yaml::to_string(&vault_values_yaml).unwrap();
     std::fs::write(
         format!(
             "{}/namespaces/vault/vault/rbac_values.yaml",
             repo_root.to_string_lossy()
         ),
-        vault_values_yaml,
+        serde_yaml::to_string(&vault_values).unwrap(),
     )
-    .unwrap();
+    .expect("Unable to write file");
 
     //argo rbac
 
