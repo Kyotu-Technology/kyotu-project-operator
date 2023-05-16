@@ -1,0 +1,8 @@
+apiVersion: kyotu.tech/v1
+kind: Project
+metadata:
+  name: test-project-qa
+spec:
+  projectId: test-project
+  environmentType: qa
+  googleGroup: test.crew@kyotutechnology.com

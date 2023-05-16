@@ -51,21 +51,31 @@ pub async fn add_rbacs(
         .unwrap();
 
     //add new policy to with key name and value flux-<project_name>
-    let mut new_policy = serde_yaml::mapping::Mapping::new();
-    new_policy.insert(
-        serde_yaml::Value::String("name".to_string()),
-        serde_yaml::Value::String(format!("{}_access", name.replace('-', "_"))),
-    );
-    new_policy.insert(
-        serde_yaml::Value::String("rules".to_string()),
-        serde_yaml::Value::String(format!(
-            "path \"secret/{}/*\" {{\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}}",
-            name.replace('-', "_")
-        )),
-    );
-
     let mut policies = policies.to_owned();
-    policies.push(serde_yaml::Value::Mapping(new_policy));
+
+    //check if policy already exists
+    let mut policy_exists = false;
+    for policy in &policies {
+        if policy["name"].as_str().unwrap() == format!("{}_access", name.replace('-', "_")) {
+            policy_exists = true;
+        }
+    }
+
+    if !policy_exists {
+        let mut new_policy = serde_yaml::mapping::Mapping::new();
+        new_policy.insert(
+            serde_yaml::Value::String("name".to_string()),
+            serde_yaml::Value::String(format!("{}_access", name.replace('-', "_"))),
+        );
+        new_policy.insert(
+            serde_yaml::Value::String("rules".to_string()),
+            serde_yaml::Value::String(format!(
+                "path \"secret/{}/*\" {{\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"]\n}}",
+                name.replace('-', "_")
+            )),
+        );
+        policies.push(serde_yaml::Value::Mapping(new_policy));
+    }
 
     //update vault_values yaml with new policy
     let mut vault_values_yaml = vault_values_yaml.to_owned();
@@ -77,29 +87,51 @@ pub async fn add_rbacs(
         .as_sequence()
         .unwrap();
 
-    let mut new_group = serde_yaml::mapping::Mapping::new();
-    new_group.insert(
-        serde_yaml::Value::String("name".to_string()),
-        serde_yaml::Value::String(google_group.to_string()),
-    );
-    new_group.insert(
-        serde_yaml::Value::String("type".to_string()),
-        serde_yaml::Value::String("external".to_string()),
-    );
-    //add policies as array
-    let mut group_policies = Vec::new();
-    group_policies.push(serde_yaml::Value::String(format!(
-        "{}_access",
-        name.replace('-', "_")
-    )));
-    new_group.insert(
-        serde_yaml::Value::String("policies".to_string()),
-        serde_yaml::Value::Sequence(group_policies),
-    );
-
     let mut groups = groups.to_owned();
 
-    groups.push(serde_yaml::Value::Mapping(new_group));
+    //check if group already exists
+    let mut group_exists = false;
+    for group in &groups {
+        if group["name"].as_str().unwrap() == google_group {
+            group_exists = true;
+        }
+    }
+
+    if !group_exists {
+        let mut new_group = serde_yaml::mapping::Mapping::new();
+        new_group.insert(
+            serde_yaml::Value::String("name".to_string()),
+            serde_yaml::Value::String(google_group.to_string()),
+        );
+        new_group.insert(
+            serde_yaml::Value::String("type".to_string()),
+            serde_yaml::Value::String("external".to_string()),
+        );
+
+        //add policies as array
+        let mut group_policies = Vec::new();
+        group_policies.push(serde_yaml::Value::String(format!(
+            "{}_access",
+            name.replace('-', "_")
+        )));
+        new_group.insert(
+            serde_yaml::Value::String("policies".to_string()),
+            serde_yaml::Value::Sequence(group_policies),
+        );
+
+        groups.push(serde_yaml::Value::Mapping(new_group));
+    } else {
+        //add policy to existing group
+        for group in &mut groups {
+            if group["name"].as_str().unwrap() == google_group {
+                let group_policies = group["policies"].as_sequence_mut().unwrap();
+                group_policies.push(serde_yaml::Value::String(format!(
+                    "{}_access",
+                    name.replace('-', "_")
+                )));
+            }
+        }
+    }
 
     vault_values_yaml["vault"]["externalConfig"]["groups"] = serde_yaml::Value::Sequence(groups);
 
@@ -108,23 +140,33 @@ pub async fn add_rbacs(
         .as_sequence()
         .unwrap();
 
-    let mut new_group_alias = serde_yaml::mapping::Mapping::new();
-    new_group_alias.insert(
-        serde_yaml::Value::String("name".to_string()),
-        serde_yaml::Value::String(google_group.to_string()),
-    );
-    new_group_alias.insert(
-        serde_yaml::Value::String("mountpath".to_string()),
-        serde_yaml::Value::String("oidc".to_string()),
-    );
-    new_group_alias.insert(
-        serde_yaml::Value::String("group".to_string()),
-        serde_yaml::Value::String(google_group.to_string()),
-    );
-
     let mut group_aliases = group_aliases.to_owned();
 
-    group_aliases.push(serde_yaml::Value::Mapping(new_group_alias));
+    //check if group alias already exists
+    let mut group_alias_exists = false;
+    for group_alias in &group_aliases {
+        if group_alias["name"].as_str().unwrap() == google_group {
+            group_alias_exists = true;
+        }
+    }
+
+    //if group alias doesn't exist, add it
+    if !group_alias_exists {
+        let mut new_group_alias = serde_yaml::mapping::Mapping::new();
+        new_group_alias.insert(
+            serde_yaml::Value::String("name".to_string()),
+            serde_yaml::Value::String(google_group.to_string()),
+        );
+        new_group_alias.insert(
+            serde_yaml::Value::String("mountpath".to_string()),
+            serde_yaml::Value::String("oidc".to_string()),
+        );
+        new_group_alias.insert(
+            serde_yaml::Value::String("group".to_string()),
+            serde_yaml::Value::String(google_group.to_string()),
+        );
+        group_aliases.push(serde_yaml::Value::Mapping(new_group_alias));
+    }
 
     vault_values_yaml["vault"]["externalConfig"]["group-aliases"] =
         serde_yaml::Value::Sequence(group_aliases);
@@ -141,7 +183,6 @@ pub async fn add_rbacs(
     .unwrap();
 
     //argo rbac
-
     let mut argo_values = std::fs::read_to_string(format!(
         "{}/namespaces/argocd/argocd-operator/rbac.yaml",
         repo_root.to_string_lossy()
@@ -242,11 +283,28 @@ pub async fn remove_rbacs(
         .as_sequence()
         .unwrap();
 
-    let mut groups = groups.to_owned();
+    //initialiaze empty groups array
+    let mut new_groups: Vec<serde_yaml::Value> = Vec::new();
 
-    groups.retain(|group| group["name"].as_str().unwrap() != google_group);
+    for group in groups {
+        println!("{}", group["name"].as_str().unwrap());
+        //print group policies
+        println!("before: {:?}", group["policies"].as_sequence().unwrap());
+        let mut group = group.to_owned();
+        group["policies"]
+            .as_sequence_mut()
+            .unwrap()
+            .retain(|policy| {
+                policy.as_str().unwrap() != format!("{}_access", name.replace('-', "_")).as_str()
+            });
+        //push group to new_groups if it has policies
+        if group["policies"].as_sequence().unwrap().is_empty() {
+            new_groups.push(group);
+        }
+    }
 
-    vault_values_yaml["vault"]["externalConfig"]["groups"] = serde_yaml::Value::Sequence(groups);
+    vault_values_yaml["vault"]["externalConfig"]["groups"] =
+        serde_yaml::Value::Sequence(new_groups);
 
     //remove group-aliases
 
@@ -256,9 +314,14 @@ pub async fn remove_rbacs(
 
     let mut group_aliases = group_aliases.to_owned();
 
+    let new_groups = vault_values_yaml["vault"]["externalConfig"]["groups"]
+        .as_sequence()
+        .unwrap();
+    //if group is in new_groups leave it in group_aliases
     group_aliases.retain(|group_alias| {
-        group_alias["name"].as_str().unwrap() != google_group
-            && group_alias["group"].as_str().unwrap() != google_group
+        new_groups
+            .iter()
+            .any(|group| group["name"].as_str().unwrap() == group_alias["group"].as_str().unwrap())
     });
 
     vault_values_yaml["vault"]["externalConfig"]["group-aliases"] =

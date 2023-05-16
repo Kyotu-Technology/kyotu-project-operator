@@ -33,12 +33,17 @@ enum ProjectAction {
 pub async fn reconcile(project: Arc<Project>, context: Arc<ContextData>) -> Result<Action, Error> {
     let client: Client = context.client.clone();
     let gitlab = context.gitlab.clone();
-    let project_name = project.metadata.name.clone().unwrap();
+
+    let project_id = project.spec.project_id.clone();
     let google_group = project.spec.google_group.clone();
+    let environment_type = project.spec.environment_type.clone();
+    let project_name = format!("{}-{}", project_id, environment_type);
+
     let repo_root = std::env::var("DEPLOY_ROOT").expect("DEPLOY_ROOT not set");
     let flux_root = std::env::var("FLUX_ROOT").expect("FLUX_ROOT not set");
     let repo_root = Path::new(repo_root.as_str());
     let flux_root = Path::new(flux_root.as_str());
+
     let namespace: String = match project.metadata.namespace.clone() {
         None => {
             return Err(Error::UserInputError(
@@ -51,7 +56,12 @@ pub async fn reconcile(project: Arc<Project>, context: Arc<ContextData>) -> Resu
     #[allow(clippy::needless_return)]
     return match determine_action(&project) {
         ProjectAction::Create => {
-            finalizer::add(client.clone(), &project_name, &namespace).await?;
+            finalizer::add(
+                client.clone(),
+                project.metadata.name.as_ref().unwrap(),
+                &namespace,
+            )
+            .await?;
 
             match create_namespace(client.clone(), &project_name).await {
                 Ok(_) => {}
@@ -60,7 +70,7 @@ pub async fn reconcile(project: Arc<Project>, context: Arc<ContextData>) -> Resu
                 }
             }
 
-            let group_id = gitlab.create_group(&project_name).await.unwrap();
+            let group_id = gitlab.create_group(&project_id).await.unwrap();
 
             //check if pull token exists
             let pull_token = match gitlab
@@ -109,7 +119,7 @@ pub async fn reconcile(project: Arc<Project>, context: Arc<ContextData>) -> Resu
             delete_namespace(client.clone(), &project_name)
                 .await
                 .unwrap();
-            finalizer::delete(client, &project_name, &namespace).await?;
+            finalizer::delete(client, project.metadata.name.as_ref().unwrap(), &namespace).await?;
             Ok(Action::await_change())
         }
         ProjectAction::NoOp => Ok(Action::requeue(Duration::from_secs(10))),
@@ -127,6 +137,12 @@ fn determine_action(project: &Project) -> ProjectAction {
         .as_ref()
         .map_or(true, |finalizers| finalizers.is_empty())
     {
+        log::info!(
+            "Project {} {} is being created {}",
+            project.spec.project_id,
+            project.spec.environment_type,
+            project.metadata.name.as_ref().unwrap()
+        );
         ProjectAction::Create
     } else {
         ProjectAction::NoOp
