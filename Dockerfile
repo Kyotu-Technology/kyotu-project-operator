@@ -17,7 +17,7 @@ RUN cargo build --release --bin kyotu-project-operator
 FROM debian:bullseye-slim
 ARG APP=/home/rust_app
 
-RUN apt-get update && apt-get install -y wget tzdata ca-certificates libssl-dev openssl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y wget tzdata ca-certificates libssl-dev openssl openssh-client && rm -rf /var/lib/apt/lists/*
 
 ENV TZ=Etc/UTC \
     APP_USER=rust_app
@@ -30,7 +30,14 @@ COPY --from=builder /usr/src/kyotu-project-operator/target/release/kyotu-project
 
 RUN chown -R $APP_USER:$APP_USER ${APP}
 
+
 USER $APP_USER
+
+#add github to known hosts
+RUN mkdir -p /home/rust_app/.ssh && ssh-keyscan github.com >> /home/rust_app/.ssh/known_hosts
+RUN chmod 700 /home/rust_app/.ssh && chmod 600 /home/rust_app/.ssh/known_hosts
+RUN chown -R $APP_USER:$APP_USER /home/rust_app/.ssh
+
 WORKDIR ${APP}
 
 EXPOSE 8080
