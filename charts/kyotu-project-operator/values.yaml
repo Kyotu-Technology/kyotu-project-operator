@@ -33,6 +33,7 @@ config:
   sshKeyPath: /tmp/ssh/id_rsa
   sshKeySecret: kyotu-project-operator-ssh-key
   sshKeySecretKey: id_rsa
+  logLevel: debug
 
 service:
   type: ClusterIP

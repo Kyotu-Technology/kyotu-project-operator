@@ -36,6 +36,8 @@ spec:
               containerPort: {{ .Values.service.port }}
               protocol: TCP
           env:
+            - name: LOG_LEVEL
+              value: {{ .Values.config.logLevel }}
             - name: GITLAB_URL
               value: {{ .Values.config.gitlabUrl }}
             - name: DEPLOY_ROOT
@@ -72,7 +74,7 @@ spec:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
             - name: ssh-key
-              mountPath: {{ .Values.config.sshKeyPath }}
+              mountPath: {{ printf "%s" (splitList "/" .Values.config.sshKeyPath | initial | join "/") }}
               readOnly: true
       volumes:
         - name: ssh-key

@@ -36,6 +36,9 @@ pub async fn reconcile(project: Arc<Project>, context: Arc<ContextData>) -> Resu
     let project_name = project.metadata.name.clone().unwrap();
     let google_group = project.spec.googleGroup.clone();
     let repo_root = std::env::var("DEPLOY_ROOT").expect("DEPLOY_ROOT not set");
+    let flux_root = std::env::var("FLUX_ROOT").expect("FLUX_ROOT not set");
+    let repo_root = Path::new(repo_root.as_str());
+    let flux_root = Path::new(flux_root.as_str());
     let namespace: String = match project.metadata.namespace.clone() {
         None => {
             return Err(Error::UserInputError(
@@ -47,7 +50,6 @@ pub async fn reconcile(project: Arc<Project>, context: Arc<ContextData>) -> Resu
 
     return match determine_action(&project) {
         ProjectAction::Create => {
-            let repo_root = Path::new(repo_root.as_str());
             finalizer::add(client.clone(), &project_name, &namespace).await?;
 
             match create_namespace(client.clone(), &project_name).await {
@@ -86,15 +88,14 @@ pub async fn reconcile(project: Arc<Project>, context: Arc<ContextData>) -> Resu
                 .await
                 .unwrap();
             create_project(&project_name, repo_root).await.unwrap();
-            add_rbacs(&project_name, repo_root, &google_group)
+            add_rbacs(&project_name, flux_root, &google_group)
                 .await
                 .unwrap();
 
             Ok(Action::requeue(Duration::from_secs(10)))
         }
         ProjectAction::Delete => {
-            let repo_root = Path::new(repo_root.as_str());
-            remove_rbacs(&project_name, repo_root, &google_group)
+            remove_rbacs(&project_name, flux_root, &google_group)
                 .await
                 .unwrap();
             match delete_project(&project_name, repo_root).await {
