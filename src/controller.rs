@@ -18,13 +18,12 @@ use tokio::{sync::RwLock, time::Duration};
 use tracing::info;
 
 use crate::finalizer;
-use crate::gitlab::Gitlab;
 use crate::namespace::{create_namespace, delete_namespace};
 use crate::project::{create_project, delete_project};
 use crate::project_crd::Project;
 use crate::rbacs::{add_rbacs, remove_rbacs};
 use crate::secret::{create_secret, delete_secret};
-use crate::{Error, Metrics, Result};
+use crate::{Error, Gitlab, Metrics, Result};
 
 #[derive(Clone)]
 pub struct Context {
@@ -46,7 +45,7 @@ pub async fn reconcile(project: Arc<Project>, context: Arc<Context>) -> Result<A
     let _timer = context.metrics.count_and_measure();
     context.diagnostics.write().await.last_event = Utc::now();
 
-    let client: Client = context.client.clone();
+    let client = context.client.clone();
     let gitlab = context.gitlab.clone();
 
     let project_id = project.spec.project_id.clone();
@@ -76,6 +75,7 @@ pub async fn reconcile(project: Arc<Project>, context: Arc<Context>) -> Result<A
                 .read()
                 .await
                 .recorder(client.clone(), &project);
+
             finalizer::add(
                 client.clone(),
                 project.metadata.name.as_ref().unwrap(),
@@ -276,7 +276,10 @@ impl Default for Diagnostics {
     fn default() -> Self {
         Self {
             last_event: Utc::now(),
-            reporter: "kyotu-project-operator".into(),
+            reporter: Reporter {
+                controller: "kyotu-project-operator".into(),
+                instance: "default".to_string().into(),
+            },
         }
     }
 }
