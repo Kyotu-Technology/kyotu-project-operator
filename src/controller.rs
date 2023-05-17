@@ -5,8 +5,7 @@ use kube::{
     client::Client,
     runtime::{
         controller::{Action, Controller},
-        events::{Event, EventType},
-        events::{Recorder, Reporter},
+        events::{Event, EventType, Recorder, Reporter},
         watcher::Config,
     },
     Resource,
