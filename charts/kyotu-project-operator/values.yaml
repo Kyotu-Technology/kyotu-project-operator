@@ -35,6 +35,11 @@ config:
   sshKeySecretKey: id_rsa
   logLevel: debug
 
+  metrics:
+    enabled: true
+    port: 8080
+    path: /metrics
+
 service:
   type: ClusterIP
   port: 8080
