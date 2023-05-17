@@ -1,28 +1,10 @@
-use actix_web::{get, HttpResponse, Responder};
-use futures::stream::StreamExt;
-use kube::{
-    api::Api,
-    client::Client,
-    runtime::{controller::Controller, watcher::Config},
-};
+use actix_web::{get, web::Data, HttpRequest, HttpResponse, Responder};
+pub use controller::State;
+use prometheus::{Encoder, TextEncoder};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 use tokio::signal::unix::{signal, SignalKind};
 use tracing::info;
 use tracing_actix_web::TracingLogger;
-
-mod controller;
-mod finalizer;
-mod gitlab;
-mod namespace;
-mod project;
-mod project_crd;
-mod rbacs;
-mod repository;
-mod secret;
-
-use crate::gitlab::Gitlab;
-use crate::project_crd::Project;
 
 #[derive(Serialize, Deserialize)]
 struct Health {
@@ -34,6 +16,21 @@ pub async fn health() -> impl Responder {
     HttpResponse::Ok().json(Health {
         status: "ok".to_string(),
     })
+}
+
+#[get("/metrics")]
+async fn metrics(c: Data<State>, _req: HttpRequest) -> impl Responder {
+    let metrics = c.metrics();
+    let encoder = TextEncoder::new();
+    let mut buffer = vec![];
+    encoder.encode(&metrics, &mut buffer).unwrap();
+    HttpResponse::Ok().body(buffer)
+}
+
+#[get("/")]
+async fn index(c: Data<State>, _req: HttpRequest) -> impl Responder {
+    let d = c.diagnostics().await;
+    HttpResponse::Ok().json(&d)
 }
 
 #[tokio::main]
@@ -56,49 +53,22 @@ async fn main() -> anyhow::Result<()> {
         .with_max_level(log_level)
         .json()
         .init();
-
-    let kubernetes_client = Client::try_default()
-        .await
-        .expect("Failed to create client");
-
-    let crd_api: Api<Project> = Api::all(kubernetes_client.clone());
-
-    let gitlab_url = std::env::var("GITLAB_URL").expect("GITLAB_URL not set");
-    let gitlab_token = std::env::var("GITLAB_TOKEN").expect("GITLAB_TOKEN not set");
-
-    let gitlab = Gitlab::new(gitlab_url, gitlab_token);
-
-    let context: Arc<controller::ContextData> = Arc::new(controller::ContextData {
-        client: kubernetes_client.clone(),
-        gitlab: gitlab.clone(),
-    });
-
+    let state = State::default();
+    let contro = tokio::spawn(controller::run(state.clone()));
     //start server for health check
-    let srv = actix_web::HttpServer::new(|| {
+    let srv = actix_web::HttpServer::new(move || {
         actix_web::App::new()
+            .app_data(Data::new(state.clone()))
             .wrap(TracingLogger::default())
+            .service(index)
             .service(health)
+            .service(metrics)
     })
     .bind("0.0.0.0:8080")
     .expect("Failed to bind to port 8080")
     .shutdown_timeout(5);
 
-    let controller = Controller::new(crd_api.clone(), Config::default().any_semantic())
-        .run(controller::reconcile, controller::on_error, context)
-        .for_each(|reconciliation_result| async move {
-            match reconciliation_result {
-                Ok(echo_resource) => {
-                    info!("Reconciliation successful. Resource: {:?}", echo_resource);
-                }
-                Err(reconciliation_err) => {
-                    eprintln!("Reconciliation error: {:?}", reconciliation_err)
-                }
-            }
-        });
-
     let server = tokio::spawn(srv.run());
-
-    let contro = tokio::spawn(controller);
 
     let mut sigterm = signal(SignalKind::terminate()).unwrap();
     let mut sigint = signal(SignalKind::interrupt()).unwrap();
