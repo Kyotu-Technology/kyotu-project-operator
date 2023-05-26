@@ -1,4 +1,3 @@
-use git2::CredentialType;
 use std::path::Path;
 use tera::{Context, Tera};
 
@@ -30,6 +29,7 @@ pub async fn create_project(name: &str, repo_root: &Path) -> Result<String, Proj
         }
     };
 
+    let deploy_token = std::env::var("ARGO_DEPLOY_TOKEN").expect("ARGO_DEPLOY_TOKEN not set");
     //clear tmp dir
     if repo_root.exists() {
         std::fs::remove_dir_all(repo_root).expect("Failed to remove repo root");
@@ -39,7 +39,7 @@ pub async fn create_project(name: &str, repo_root: &Path) -> Result<String, Proj
         &repo_url,
         &repo_branch,
         &repo_root.to_string_lossy(),
-        CredentialType::USER_PASS_PLAINTEXT,
+        Some(&deploy_token),
     )
     .expect("Failed to clone repo");
 
@@ -104,12 +104,14 @@ pub async fn delete_project(name: &str, repo_root: &Path) -> Result<String, Proj
     if repo_root.exists() {
         std::fs::remove_dir_all(repo_root).expect("Failed to remove repo root");
     }
+
+    let deploy_token = std::env::var("ARGO_DEPLOY_TOKEN").expect("ARGO_DEPLOY_TOKEN not set");
     //clone repo into project folder
     let argo_repository = Repository::clone(
         &repo_url,
         &repo_branch,
         &repo_root.to_string_lossy(),
-        CredentialType::USER_PASS_PLAINTEXT,
+        Some(&deploy_token),
     )
     .expect("Failed to clone repo");
 

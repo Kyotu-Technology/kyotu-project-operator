@@ -1,5 +1,4 @@
 use crate::repository::Repository;
-use git2::CredentialType;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -75,12 +74,15 @@ pub async fn add_rbacs(
     if repo_root.exists() {
         std::fs::remove_dir_all(repo_root).expect("Failed to remove repo root");
     }
+
+    let deploy_token = std::env::var("FLUX_DEPLOY_TOKEN").expect("FLUX_DEPLOY_TOKEN not set");
+
     //clone repo into project folder
     let flux_repository = Repository::clone(
         &repo_url,
         &repo_branch,
         &repo_root.to_string_lossy(),
-        CredentialType::SSH_KEY,
+        Some(&deploy_token),
     )
     .expect("Failed to clone repo");
 
@@ -228,13 +230,13 @@ pub async fn remove_rbacs(
         std::fs::remove_dir_all(repo_root).expect("Failed to remove repo root");
     }
 
-    //clone repo into project folder
+    let deploy_token = std::env::var("FLUX_DEPLOY_TOKEN").expect("FLUX_DEPLOY_TOKEN not set");
 
     let flux_repository = Repository::clone(
         &repo_url,
         &repo_branch,
         &repo_root.to_string_lossy(),
-        CredentialType::SSH_KEY,
+        Some(&deploy_token),
     )
     .expect("Failed to clone repo");
 
