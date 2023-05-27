@@ -59,7 +59,7 @@ spec:
             - name: FLUX_DEPLOY_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.config.flux.deployKeySecre }}
+                  name: {{ .Values.config.flux.deployKeySecret }}
                   key: {{ .Values.config.flux.deployKeySecretKey}}
             - name: GITLAB_TOKEN
               valueFrom:
