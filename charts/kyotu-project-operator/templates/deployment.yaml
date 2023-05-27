@@ -51,12 +51,12 @@ spec:
               value: {{ .Values.config.fluxRepo }}
             - name: REPO_BRANCH
               value: {{ .Values.config.repoBranch }}
-            - name: ARGO_DEPLOY_KEY
+            - name: ARGO_DEPLOY_TOKEN
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.config.argo.deployKeySecret }}
                   key: {{ .Values.config.argo.deployKeySecretKey }}
-            - name: FLUX_DEPLOY_KEY
+            - name: FLUX_DEPLOY_TOKEN
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.config.flux.deployKeySecret }}
