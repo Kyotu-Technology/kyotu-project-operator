@@ -5,6 +5,7 @@ use tracing::log;
 pub struct Repository {
     inner: git2::Repository,
     base_path: PathBuf,
+    deploy_key: Option<String>,
     cred_type: CredentialType,
 }
 
@@ -22,24 +23,37 @@ impl Repository {
         remote_url: &str,
         remote_branch: &str,
         target_path: &str,
-        cred_type: CredentialType,
+        deploy_key: Option<&str>,
     ) -> anyhow::Result<Self> {
         let mut callbacks = git2::RemoteCallbacks::new();
 
+        let deploy_key = deploy_key.unwrap_or("");
+
+        //if url is ssh, use ssh key
+        let cred_type = if remote_url.starts_with("https://") {
+            CredentialType::USER_PASS_PLAINTEXT
+        } else {
+            CredentialType::SSH_KEY
+        };
+
         match cred_type {
             CredentialType::SSH_KEY => {
-                callbacks.credentials(Self::credentials_cb_ssh);
+                callbacks.credentials(|_url, username_from_url, _allowed_types| {
+                    let user = username_from_url.unwrap_or("git");
+                    git2::Cred::ssh_key_from_memory(user, None, deploy_key, None)
+                });
             }
             CredentialType::USER_PASS_PLAINTEXT => {
-                callbacks.credentials(Self::credentials_cb_pass);
+                callbacks.credentials(|_url, username_from_url, _allowed_types| {
+                    let user = username_from_url.unwrap_or("git");
+                    git2::Cred::userpass_plaintext(user, deploy_key)
+                });
             }
             _ => {
                 log::error!("Unknown credential type");
                 ::std::process::exit(1);
             }
         }
-
-        //callbacks.transfer_progress(transfer_progress_cb);
 
         let mut fetch_options = git2::FetchOptions::new();
         fetch_options.remote_callbacks(callbacks);
@@ -55,6 +69,7 @@ impl Repository {
         Ok(Self {
             inner: repo,
             base_path: PathBuf::from(target_path),
+            deploy_key: Some(deploy_key.to_string()),
             cred_type,
         })
     }
@@ -82,17 +97,28 @@ impl Repository {
 
         match self.cred_type {
             CredentialType::SSH_KEY => {
-                push_callbacks.credentials(Self::credentials_cb_ssh);
+                push_callbacks.credentials(|_url, username_from_url, _allowed_types| {
+                    let user = username_from_url.unwrap_or("git");
+                    git2::Cred::ssh_key_from_memory(
+                        user,
+                        None,
+                        self.deploy_key.as_ref().unwrap(),
+                        None,
+                    )
+                });
             }
             CredentialType::USER_PASS_PLAINTEXT => {
-                push_callbacks.credentials(Self::credentials_cb_pass);
+                push_callbacks.credentials(|_url, username_from_url, _allowed_types| {
+                    let user = username_from_url.unwrap_or("git");
+                    git2::Cred::userpass_plaintext(user, self.deploy_key.as_ref().unwrap())
+                });
             }
             _ => {
                 log::error!("Unknown credential type");
                 ::std::process::exit(1);
             }
         }
-        //push_callbacks.transfer_progress(|ref progress| transfer_progress_cb(progress));
+
         push_options.remote_callbacks(push_callbacks);
 
         remote
@@ -103,65 +129,5 @@ impl Repository {
             .expect("Could not push to remote");
 
         Ok(())
-    }
-
-    pub fn credentials_cb_pass(
-        _user: &str,
-        _user_from_url: Option<&str>,
-        _cred: git2::CredentialType,
-    ) -> Result<git2::Cred, git2::Error> {
-        let user = _user_from_url.unwrap_or("git");
-
-        if _cred.contains(git2::CredentialType::USERNAME) {
-            return git2::Cred::username(user);
-        }
-        match std::env::var("DEPLOY_KEY") {
-            Ok(p) => {
-                log::debug!("authenticate with user {} and password", user);
-                git2::Cred::userpass_plaintext(user, &p)
-            }
-            _ => Err(git2::Error::from_str(
-                "unable to get password from DEPLOY_KEY",
-            )),
-        }
-    }
-
-    pub fn credentials_cb_ssh(
-        _user: &str,
-        _user_from_url: Option<&str>,
-        _cred: git2::CredentialType,
-    ) -> Result<git2::Cred, git2::Error> {
-        let user = _user_from_url.unwrap_or("git");
-
-        if _cred.contains(git2::CredentialType::USERNAME) {
-            return git2::Cred::username(user);
-        }
-        match std::env::var("SSH_KEY_PATH") {
-            Ok(p) => {
-                log::debug!("authenticate with user {} and ssh key", user);
-                git2::Cred::ssh_key(user, None, std::path::Path::new(&p), None)
-            }
-            _ => Err(git2::Error::from_str("unable to get ssh key from SSH_KEY")),
-        }
-    }
-
-    #[allow(dead_code)]
-    pub fn transfer_progress_cb(progress: &git2::Progress) -> bool {
-        if progress.received_objects() == progress.total_objects() {
-            log::info!(
-                "Resolving deltas {}/{}",
-                progress.indexed_deltas(),
-                progress.total_deltas()
-            );
-        } else if progress.total_objects() > 0 {
-            log::info!(
-                "Received {}/{} objects ({}) in {} bytes",
-                progress.received_objects(),
-                progress.total_objects(),
-                progress.indexed_objects(),
-                progress.received_bytes()
-            );
-        }
-        true
     }
 }

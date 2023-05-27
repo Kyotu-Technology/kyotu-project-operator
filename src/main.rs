@@ -47,7 +47,7 @@ async fn main() -> anyhow::Result<()> {
         _ => tracing::Level::INFO,
     };
 
-    //init tracing with env_logger
+    //init tracing
     tracing_subscriber::FmtSubscriber::builder()
         .with_span_events(tracing_subscriber::fmt::format::FmtSpan::CLOSE)
         .with_max_level(log_level)
@@ -55,7 +55,8 @@ async fn main() -> anyhow::Result<()> {
         .init();
     let state = State::default();
     let contro = tokio::spawn(controller::run(state.clone()));
-    //start server for health check
+
+    //start server for health check and metrics
     let srv = actix_web::HttpServer::new(move || {
         actix_web::App::new()
             .app_data(Data::new(state.clone()))

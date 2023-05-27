@@ -202,6 +202,7 @@ impl Gitlab {
 
     pub async fn delete_group_access_token(
         &self,
+
         name: &str,
         group_id: &u64,
     ) -> Result<String, reqwest::Error> {

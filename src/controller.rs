@@ -52,9 +52,9 @@ pub async fn reconcile(project: Arc<Project>, context: Arc<Context>) -> Result<A
     let environment_type = project.spec.environment_type.clone();
     let project_name = format!("{}-{}", project_id, environment_type);
 
-    let repo_root = std::env::var("DEPLOY_ROOT").expect("DEPLOY_ROOT not set");
-    let flux_root = std::env::var("FLUX_ROOT").expect("FLUX_ROOT not set");
-    let repo_root = Path::new(repo_root.as_str());
+    let argo_root = std::env::var("ARGO_ROOT").unwrap_or("tmp/argo_repo".to_string());
+    let flux_root = std::env::var("FLUX_ROOT").unwrap_or("tmp/flux_repo".to_string());
+    let argo_root = Path::new(argo_root.as_str());
     let flux_root = Path::new(flux_root.as_str());
 
     let namespace: String = match project.metadata.namespace.clone() {
@@ -118,7 +118,7 @@ pub async fn reconcile(project: Arc<Project>, context: Arc<Context>) -> Result<A
             create_secret(client.clone(), &project_name, &pull_token.unwrap())
                 .await
                 .unwrap();
-            create_project(&project_name, repo_root).await.unwrap();
+            create_project(&project_name, argo_root).await.unwrap();
             add_rbacs(&project_name, flux_root, &google_group)
                 .await
                 .unwrap();
@@ -144,7 +144,7 @@ pub async fn reconcile(project: Arc<Project>, context: Arc<Context>) -> Result<A
             remove_rbacs(&project_name, flux_root, &google_group)
                 .await
                 .unwrap();
-            match delete_project(&project_name, repo_root).await {
+            match delete_project(&project_name, argo_root).await {
                 Ok(_) => {}
                 Err(e) => {
                     log::error!("Failed to delete project: {:?}", e);
