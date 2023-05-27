@@ -24,12 +24,15 @@ config:
   argoRepo: https://operator@gitlab.k8s.kyotutechnology.com/operations/deployment.git
   fluxRepo: git@github.com:Kyotu-Technology/aws-k8s-flux.git
   repoBranch: test
-  argoDeployKeySecret: kyotu-project-operator-token
-  argoDeployKeySecretKey: argoDeployKey
-  fluxDeployKeySecret: kyotu-project-operator-token
-  fluxDeployKeySecretKey: fluxDeployKey
-  gitlabTokenSecret: kyotu-project-operator-token
-  gitlabTokenSecretKey: gitlabToken
+  argo:
+    deployKeySecret: kyotu-project-operator-token
+    deployKeySecretKey: argoDeployKey
+  flux:
+    deployKeySecret: kyotu-project-operator-token
+    deployKeySecretKey: fluxDeployKey
+  gitlab:
+    tokenSecret: kyotu-project-operator-token
+    tokenSecretKey: gitlabToken
   logLevel: debug
 
   metrics:

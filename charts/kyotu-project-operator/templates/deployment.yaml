@@ -54,20 +54,18 @@ spec:
             - name: ARGO_DEPLOY_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.config.deployKeySecret }}
-                  key: {{ .Values.config.deployKeySecretKey }}
+                  name: {{ .Values.config.argo.deployKeySecret }}
+                  key: {{ .Values.config.argo.deployKeySecretKey }}
             - name: FLUX_DEPLOY_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.config.fluxKeySecret }}
-                  key: {{ .Values.config.fluxKeySecretKey }}
+                  name: {{ .Values.config.flux.deployKeySecre }}
+                  key: {{ .Values.config.flux.deployKeySecretKey}}
             - name: GITLAB_TOKEN
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.config.gitlabTokenSecret }}
-                  key: {{ .Values.config.gitlabTokenSecretKey }}
-            - name: SSH_KEY_PATH
-              value: {{ .Values.config.sshKeyPath }}
+                  name: {{ .Values.config.gitlab.tokenSecret }}
+                  key: {{ .Values.config.gitlab.tokenSecretKey }}
           livenessProbe:
             httpGet:
               path: /health
