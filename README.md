@@ -40,20 +40,16 @@ Chart is configures using values.yaml file. Here are the options:
 | Parameter | Description | Default |
 | --------- | ----------- | ------- |
 | `config.gitlabUrl` | URL to gitlab | `https://gitlab.k8s.kyotutechnology.com` |
-| `config.deployRoot` | Directory where deployment repo will be temporarly stored| `tmp/deploy_repo` |
-| `config.fluxRoot` | Directory where flux repo will be temporarly stored| `tmp/flux_repo` |
 | `config.argoRepo` | Deployment repo address for cloning and pushing| `https://operator@gitlab.k8s.kyotutechnology.com/operations/deployment.git`|
 | `config.fluxRepo` |Flux repo address for clonning and pushing| `git@github.com:Kyotu-Technology/aws-k8s-flux.git`|
 | `config.repoBranch` | Branch where changes will be pushed | `test`|
-| `config.deployKeySecret` | Secret name storing gitlab token for Deployment repo| `kyotu-project-operator-token`|
-| `config.deployKeySecretKey` | Secret key where token is saved | `deployKey`|
-| `config.gitlabTokenSecret` | Secret name for Token that has access to Gitlab API| `kyotu-project-operator-token`|
-| `config.gitlabTokenSecretKey` | Secret key where token is saved | `gitlabToken`|
-| `config.sshKeyPath` | Path where Github deploy key will be stored for flux repo | `/tmp/ssh/id_rsa`|
-| `config.sshKeySecret` | Secret name containing deploy token for github | `kyotu-project-operator-ssh-key`|
-| `config.sshKeySecretKey` | Secret key containing deploy token for github, must be the same as filename in `config.sshKeyPath` | `id_rsa`|
+| `config.argo.deployKeySecret` | Secret name storing token for Deployment repo| `kyotu-project-operator-token`|
+| `config.argo.deployKeySecretKey` | Secret key where token is saved | `deployKey`|
+| `config.flux.deployKeySecret` | Secret name storing token for Flux repo| `kyotu-project-operator-token`|
+| `config.flux.deployKeySecretKey` | Secret key where token is saved | `deployKey`|
+| `config.gitlab.tokenSecret` | Secret name for Token that has access to Gitlab API| `kyotu-project-operator-token`|
+| `config.gitlab.tokenSecretKey` | Secret key where token is saved | `gitlabToken`|
 | `config.logLevel` |Log level configuration| `debug`|
-
 
 ### Create a Kyotu Project
 
