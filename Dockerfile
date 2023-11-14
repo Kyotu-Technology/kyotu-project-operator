@@ -1,4 +1,4 @@
-FROM lukemathwalker/cargo-chef:latest-rust-1.69.0 AS chef
+FROM lukemathwalker/cargo-chef:latest-rust-1.73.0 AS chef
 WORKDIR /usr/src/kyotu-project-operator
 
 FROM chef AS planner
