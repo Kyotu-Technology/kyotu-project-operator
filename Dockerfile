@@ -1,4 +1,4 @@
-FROM lukemathwalker/cargo-chef:latest-rust-1.73.0 AS chef
+FROM lukemathwalker/cargo-chef:latest-rust-1.79.0 AS chef
 WORKDIR /usr/src/kyotu-project-operator
 
 FROM chef AS planner
@@ -14,7 +14,7 @@ COPY . .
 RUN cargo build --release --bin kyotu-project-operator
 
 
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 ARG APP=/home/rust_app
 
 RUN apt-get update && apt-get install -y wget tzdata ca-certificates libssl-dev openssl openssh-client && rm -rf /var/lib/apt/lists/*
