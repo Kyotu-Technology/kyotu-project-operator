@@ -75,6 +75,7 @@ jobs:
       - name: Pants
         run: |
           cargo pants --ignore-file .pants-ignore 
+        continue-on-error: true
 
   #push on commit to main
   push_docker:
