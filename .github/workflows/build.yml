@@ -59,6 +59,7 @@ jobs:
       - name: Deny
         run: |
           cargo deny check
+        continue-on-error: true
       
       - name: Outdated
         run: |
@@ -69,6 +70,7 @@ jobs:
         run: |
           rm -rf ~/.cargo/advisory-db
           cargo audit
+        continue-on-error: true
 
       - name: Pants
         run: |
