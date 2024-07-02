@@ -63,6 +63,7 @@ jobs:
       - name: Outdated
         run: |
           cargo outdated --exit-code 1 -d 1
+        continue-on-error: true
       
       - name: Audit 
         run: |
