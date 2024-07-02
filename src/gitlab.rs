@@ -1,3 +1,4 @@
+use chrono::{Duration, Utc};
 use reqwest::Client;
 use serde_json::json;
 
@@ -174,6 +175,8 @@ impl Gitlab {
             &self.gitlab_addr, group_id
         );
 
+        let date = Utc::now() + Duration::days(365);
+
         let res = self
             .client
             .post(&url)
@@ -181,6 +184,7 @@ impl Gitlab {
             .json(&json!({
                 "name": name,
                 "scopes": ["read_registry"],
+                "expires_at": date.format("%Y-%m-%d").to_string(),
             }))
             .send()
             .await;
@@ -188,6 +192,7 @@ impl Gitlab {
         match res {
             Ok(r) => {
                 let body = r.text().await.unwrap();
+                log::info!("Response: {}", body);
                 let json: serde_json::Value = serde_json::from_str(&body).unwrap();
                 let token = json["token"].as_str().unwrap();
                 log::info!("Created group access token: {}", name);
