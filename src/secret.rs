@@ -46,6 +46,7 @@ pub async fn create_secret(client: Client, namespace: &str, data: &str) -> anyho
             ..Default::default()
         },
         data: Some(data_map),
+        type_: Some("kubernetes.io/dockerconfigjson".to_string()),
         ..Default::default()
     };
     let secret_api: Api<Secret> = Api::namespaced(client, namespace);
