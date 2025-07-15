@@ -50,7 +50,7 @@ pub async fn reconcile(project: Arc<Project>, context: Arc<Context>) -> Result<A
     let project_id = project.spec.project_id.clone();
     let google_group = project.spec.google_group.clone();
     let environment_type = project.spec.environment_type.clone();
-    let project_name = format!("{}-{}", project_id, environment_type);
+    let project_name = format!("{project_id}-{environment_type}");
 
     let argo_root = std::env::var("ARGO_ROOT").unwrap_or("tmp/argo_repo".to_string());
     let flux_root = std::env::var("FLUX_ROOT").unwrap_or("tmp/flux_repo".to_string());
@@ -94,14 +94,14 @@ pub async fn reconcile(project: Arc<Project>, context: Arc<Context>) -> Result<A
 
             //check if pull token exists
             let pull_token = match gitlab
-                .get_group_access_token_id(&format!("{}-image-puller", project_name), &group_id)
+                .get_group_access_token_id(&format!("{project_name}-image-puller"), &group_id)
                 .await
                 .unwrap()
             {
                 None => {
                     gitlab
                         .create_group_access_token(
-                            &format!("{}-image-puller", project_name),
+                            &format!("{project_name}-image-puller"),
                             &group_id,
                         )
                         .await
@@ -109,7 +109,7 @@ pub async fn reconcile(project: Arc<Project>, context: Arc<Context>) -> Result<A
                 Some(_) => {
                     gitlab
                         .rotate_group_access_token(
-                            &format!("{}-image-puller", project_name),
+                            &format!("{project_name}-image-puller"),
                             &group_id,
                         )
                         .await
@@ -162,7 +162,7 @@ pub async fn reconcile(project: Arc<Project>, context: Arc<Context>) -> Result<A
                 .publish(Event {
                     type_: EventType::Normal,
                     reason: "DeleteRequested".into(),
-                    note: Some(format!("Delete `{}`", project_name)),
+                    note: Some(format!("Delete `{project_name}`")),
                     action: "Deleting".into(),
                     secondary: None,
                 })
@@ -194,7 +194,7 @@ pub async fn run(state: State) {
                     info!("Reconciliation successful. Resource: {:?}", echo_resource);
                 }
                 Err(reconciliation_err) => {
-                    eprintln!("Reconciliation error: {:?}", reconciliation_err)
+                    eprintln!("Reconciliation error: {reconciliation_err:?}")
                 }
             }
         })
@@ -210,7 +210,7 @@ fn determine_action(project: &Project) -> ProjectAction {
         .meta()
         .finalizers
         .as_ref()
-        .map_or(true, |finalizers| finalizers.is_empty())
+        .is_none_or(|finalizers| finalizers.is_empty())
     {
         log::info!(
             "Project {} {} is being created {}",
@@ -226,7 +226,7 @@ fn determine_action(project: &Project) -> ProjectAction {
 
 //error handling
 pub fn on_error(proj: Arc<Project>, error: &Error, context: Arc<Context>) -> Action {
-    eprintln!("Reconciliation error:\n{:?}.\n{:?}", error, proj);
+    eprintln!("Reconciliation error:\n{error:?}.\n{proj:?}");
     context.metrics.reconcile_failure(&proj, error);
     Action::requeue(Duration::from_secs(5))
 }

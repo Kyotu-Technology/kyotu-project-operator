@@ -68,7 +68,7 @@ pub async fn create_project(name: &str, repo_root: &Path) -> Result<String, Proj
     //create project.yaml file in project folder
     let project_yaml_path = Path::new(&repo_root)
         .join("applications")
-        .join(format!("{}.yaml", name));
+        .join(format!("{name}.yaml"));
     let mut file =
         std::fs::File::create(project_yaml_path).expect("Could not create project.yaml file");
     tera.render_to("argo_tmpl.yaml", &context, &mut file)
@@ -76,13 +76,13 @@ pub async fn create_project(name: &str, repo_root: &Path) -> Result<String, Proj
 
     //commit and push changes
     argo_repository
-        .commit(format!("Created project {}", name).as_str())
+        .commit(format!("Created project {name}").as_str())
         .expect("Failed to commit changes");
     argo_repository
         .push(&repo_branch)
         .expect("Failed to push changes");
 
-    Ok(format!("Created project {}", name))
+    Ok(format!("Created project {name}"))
 }
 
 pub async fn delete_project(name: &str, repo_root: &Path) -> Result<String, ProjectError> {
@@ -136,18 +136,18 @@ pub async fn delete_project(name: &str, repo_root: &Path) -> Result<String, Proj
 
     let project_yaml_path = Path::new(&repo_root)
         .join("applications")
-        .join(format!("{}.yaml", name));
+        .join(format!("{name}.yaml"));
     std::fs::remove_file(project_yaml_path)
-        .unwrap_or_else(|_| panic!("Could not delete {}.yaml file", name));
+        .unwrap_or_else(|_| panic!("Could not delete {name}.yaml file"));
 
     //commit and push changes
     argo_repository
-        .commit(format!("Deleted project {}", name).as_str())
+        .commit(format!("Deleted project {name}").as_str())
         .expect("Failed to commit changes");
     argo_repository
         .push(&repo_branch)
         .expect("Failed to push changes");
-    Ok(format!("Deleted project {}", name))
+    Ok(format!("Deleted project {name}"))
 }
 
 //error enum

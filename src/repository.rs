@@ -123,7 +123,7 @@ impl Repository {
 
         remote
             .push(
-                &[&format!("refs/heads/{}", target_branch)],
+                &[&format!("refs/heads/{target_branch}")],
                 Some(&mut push_options),
             )
             .expect("Could not push to remote");

@@ -182,7 +182,7 @@ pub async fn add_rbacs(
     let template = template.replace("{{ name }}", name);
     let template = template.replace("{{ google_group }}", google_group);
 
-    argo_values.push_str(format!("\n{}", template).as_str());
+    argo_values.push_str(format!("\n{template}").as_str());
 
     //write argo_values yaml back to file
     std::fs::write(
@@ -195,13 +195,13 @@ pub async fn add_rbacs(
     .unwrap();
 
     flux_repository
-        .commit(format!("Created rbac for {}", name).as_str())
+        .commit(format!("Created rbac for {name}").as_str())
         .expect("Failed to commit changes");
     flux_repository
         .push(&repo_branch)
         .expect("Failed to push changes");
 
-    Ok(format!("Added rbacs for project {}", name))
+    Ok(format!("Added rbacs for project {name}"))
 }
 
 pub async fn remove_rbacs(
@@ -330,13 +330,13 @@ pub async fn remove_rbacs(
 
     //commit and push changes
     flux_repository
-        .commit(format!("Removed rbac for {}", name).as_str())
+        .commit(format!("Removed rbac for {name}").as_str())
         .expect("Failed to commit changes");
     flux_repository
         .push(&repo_branch)
         .expect("Failed to push changes");
 
-    Ok(format!("Removed rbacs for project {}", name))
+    Ok(format!("Removed rbacs for project {name}"))
 }
 
 //error enum

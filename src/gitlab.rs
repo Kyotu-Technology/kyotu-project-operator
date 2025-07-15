@@ -295,9 +295,9 @@ mod tests {
             .with_body(r#"[]"#)
             .create();
 
-        let gitlab = Gitlab::new(format!("http://{}", host), "test".to_string());
+        let gitlab = Gitlab::new(format!("http://{host}"), "test".to_string());
         let res = gitlab.get_group_by_name("test").await;
-        assert_eq!(res.is_ok(), true);
+        assert!(res.is_ok());
     }
 
     #[tokio::test]
@@ -320,7 +320,7 @@ mod tests {
             .with_body(r#"{"id": 1, "name": "test", "path": "test"}"#)
             .create();
 
-        let gitlab = Gitlab::new(format!("http://{}", host), "test".to_string());
+        let gitlab = Gitlab::new(format!("http://{host}"), "test".to_string());
         let res = gitlab.create_group("test").await;
         assert_eq!(res.unwrap_or(0), 1);
     }
@@ -345,7 +345,7 @@ mod tests {
             .with_body(r#"{"id": 1, "name": "test", "path": "test"}"#)
             .create();
 
-        let gitlab = Gitlab::new(format!("http://{}", host), "test".to_string());
+        let gitlab = Gitlab::new(format!("http://{host}"), "test".to_string());
         let res = gitlab.delete_group("test").await;
         assert_eq!(res.unwrap_or("".to_string()), "test".to_string());
     }
@@ -366,7 +366,7 @@ mod tests {
             .with_body(r#"[{"id":120,"name":"test","scopes":["read_registry"]},{"id":121,"name":"non-test","scopes":["read_registry"]}]"#)
             .create();
 
-        let gitlab = Gitlab::new(format!("http://{}", host), "test".to_string());
+        let gitlab = Gitlab::new(format!("http://{host}"), "test".to_string());
         let res = gitlab.get_group_access_token_id("test", &1).await.unwrap();
         assert_eq!(res.unwrap_or(0), 120);
     }
@@ -384,7 +384,7 @@ mod tests {
             .with_body(r#"{"id": 1, "token": "test"}"#)
             .create();
 
-        let gitlab = Gitlab::new(format!("http://{}", host), "test".to_string());
+        let gitlab = Gitlab::new(format!("http://{host}"), "test".to_string());
         let res = gitlab.create_group_access_token("test", &1).await;
         assert_eq!(res.unwrap_or("".to_string()), "test".to_string());
     }
@@ -412,7 +412,7 @@ mod tests {
             .with_body(r#"{"id": 1, "token": "test"}"#)
             .create();
 
-        let gitlab = Gitlab::new(format!("http://{}", host), "test".to_string());
+        let gitlab = Gitlab::new(format!("http://{host}"), "test".to_string());
         let res = gitlab.delete_group_access_token("test", &1).await;
         assert_eq!(res.unwrap_or("".to_string()), "test".to_string());
     }
@@ -447,7 +447,7 @@ mod tests {
             .with_body(r#"{"id": 1, "token": "test"}"#)
             .create();
 
-        let gitlab = Gitlab::new(format!("http://{}", host), "test".to_string());
+        let gitlab = Gitlab::new(format!("http://{host}"), "test".to_string());
         let res = gitlab.rotate_group_access_token("test", &1).await;
         assert_eq!(res.unwrap_or("".to_string()), "test".to_string());
     }
