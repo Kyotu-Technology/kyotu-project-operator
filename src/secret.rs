@@ -15,7 +15,7 @@ pub async fn create_secret(client: Client, namespace: &str, data: &str) -> anyho
     let gitlab_url = std::env::var("GITLAB_URL").expect("GITLAB_URL must be set");
     let username = format!("{namespace}-image-puller");
 
-    let registry_url = gitlab_url.replace("https://", "https://registry.");
+    let registry_url = gitlab_url.replace("https://gitlab", "https://registry");
 
     let data_json = json!(
         {
